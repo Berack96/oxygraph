@@ -1,0 +1,9 @@
+{
+    "recommendations": [
+        "Anthropic.claude-code",
+        "fill-labs.dependi",
+        "hverlin.mise-vscode",
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+    ]
+}

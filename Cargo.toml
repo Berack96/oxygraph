@@ -1,0 +1,14 @@
+[workspace]
+resolver = "3"
+members = ["crates/oxygraph", "crates/oxygraph-derive"]
+
+[workspace.package]
+edition = "2024"
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/Berack96/oxygraph"
+
+# CI runs without incremental compilation: no cache is reused between runs, so
+# incremental only adds overhead there.
+[profile.ci]
+inherits = "dev"
+incremental = false
