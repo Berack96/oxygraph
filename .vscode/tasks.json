@@ -1,0 +1,51 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "mise",
+            "type": "shell",
+            "command": "if ! command -v mise &> /dev/null; then curl https://mise.run | sh; fi",
+            "windows": {
+                "command": "if (!(Get-Command mise -ErrorAction SilentlyContinue)) { winget install jdx.mise }"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "showReuseMessage": false
+            }
+        },
+        {
+            "label": "install",
+            "dependsOn": "mise",
+            "type": "shell",
+            "command": "mise trust && mise self-update -y && mise install",
+            "windows": {
+                // PS default version in Windows is 5.1, which does not support the && operator
+                "command": "mise trust; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; mise self-update -y; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; mise install; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "showReuseMessage": false
+            }
+        },
+        {
+            "label": "setup",
+            "dependsOn": "install",
+            "type": "shell",
+            "command": "mise run setup",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "showReuseMessage": false,
+                "close": true
+            },
+            "runOptions": {
+                "runOn": "folderOpen"
+            },
+        },
+    ]
+}

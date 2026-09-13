@@ -1,0 +1,30 @@
+# Questo file serve per standardizzare le regole di git su questo progetto evitando che alcune regole globali dell'utente possano interferire con il flusso di lavoro.
+# Viene installato automaticamente dalla task `setup` di mise (.mise.toml) e non dovrebbe essere modificato.
+
+
+[core]
+    # Evidenzia spazi vuoti inutili a fine riga o a fine file
+    whitespace = trailing-space,space-before-tab
+
+[pull]
+    # Impedisce a chiunque di fare rebase involontari quando fa `git pull`.
+    # Forza Git a fare un merge classico (con merge commit) per allinearsi.
+    rebase = false
+
+[push]
+    # Crea automaticamente il branch remoto associato al primo push
+    autoSetupRemote = true
+    # Previene push accidentali su altri branch; spinge solo il branch corrente
+    default = current
+
+[merge]
+    # Impedisce il fast-forward sui merge.
+    ff = only
+
+[fetch]
+    # Pulisce i riferimenti ai branch remoti che sono stati eliminati dal server
+    prune = true
+
+[alias]
+    # Trova tutti i branch etichettati come [gone] e li cancella in un colpo solo
+    sweep = "!f() { case \"$(uname -s)\" in MINGW*|CYGWIN*|MSYS*) powershell -NoProfile -Command \"git fetch --prune; git branch -vv | Select-String ': gone]' | ForEach-Object { git branch -D (\\$_.ToString().Trim() -split '\\s+')[0] }\" ;; *) git fetch --prune && git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -r git branch -D ;; esac }; f"

@@ -1,0 +1,30 @@
+{
+    "files.autoSave": "onFocusChange",
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
+    "files.exclude": {
+        "**/.git": true,
+        "**/target": true,
+        // To comment if needed, but it is recommended to keep it ignored to avoid cluttering
+        ".github/": true,
+        ".claude/": true,
+        ".vscode/": true,
+    },
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4,
+    "editor.wordWrapColumn": 200,
+    "editor.insertSpaces": false,
+    "[rust]": {
+        "editor.defaultFormatter": "rust-lang.rust-analyzer",
+        "editor.codeActionsOnSave": {
+            "source.fixAll.rust-analyzer": "explicit",
+            "source.organizeImports.rust-analyzer": "explicit"
+        }
+    },
+    "rust-analyzer.check.overrideCommand": [
+        "mise",
+        "run",
+        "rust:clippy-editor"
+    ],
+    "rust-analyzer.cargo.buildScripts.enable": true,
+}

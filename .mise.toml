@@ -1,0 +1,30 @@
+
+[tools]
+"aqua:nextest-rs/nextest/cargo-nextest" = "0.9.143"
+rust = { version = "1.97.1", components = [
+	"rustfmt",
+	"clippy",
+	"llvm-tools-preview",
+	"rust-analyzer",
+] }
+
+
+# Da aggiunere cose quando necessarie. Come per esempio fare il build automatico quando un file cambia (watch).
+# Per ora mette a posto l'installazione di git.
+[tasks.setup]
+description = "Setup the project"
+run = "git config --local include.path ../.gitconfig"
+
+# invocato dalla CI, non pensato per l'uso manuale
+[tasks."rust:clippy-ci"]
+description = "Lint del workspace, warning come errori"
+dir = "src"
+hide = true
+run = "cargo clippy --profile ci --workspace --all-targets -- -D warnings"
+
+# invocato da rust-analyzer, output JSON non leggibile a mano
+[tasks."rust:clippy-editor"]
+description = "Clippy in formato JSON, per rust-analyzer.check.overrideCommand"
+dir = "src"
+hide = true
+run = "cargo clippy --all-targets --message-format=json-diagnostic-rendered-ansi"
