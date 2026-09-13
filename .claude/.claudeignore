@@ -1,0 +1,8 @@
+# Version Control & OS
+.git/
+.DS_Store
+Thumbs.db
+*:Zone.Identifier
+
+# Build artifacts Rust
+target/

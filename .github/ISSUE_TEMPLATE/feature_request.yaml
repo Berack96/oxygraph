@@ -1,0 +1,41 @@
+name: "Feature Request"
+description: "Suggest a new feature, improvement, or task"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for submitting a feature request. Please fill in the details below to define the scope.
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Problem / Need"
+      description: "What problem does this request solve, or what need does it address?"
+      placeholder: "Currently, it is not possible to..."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: "Proposed Solution"
+      description: "Describe the expected behavior, technical approach, or proposed implementation."
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: "Acceptance Criteria / Tasks"
+      description: "List of actionable items required to close this issue."
+      placeholder: |
+        - [ ] Create database migration/table
+        - [ ] Implement service logic / endpoint
+        - [ ] Add unit/integration tests
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: "Additional Context"
+      description: "Links to documentation, references, API specs, or mockups."
+    validations:
+      required: false
