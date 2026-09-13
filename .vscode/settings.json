@@ -6,9 +6,9 @@
         "**/.git": true,
         "**/target": true,
         // To comment if needed, but it is recommended to keep it ignored to avoid cluttering
-        // ".github/": true,
-        // ".claude/": true,
-        // ".vscode/": true,
+        ".github/": true,
+        ".claude/": true,
+        ".vscode/": true,
     },
     "editor.formatOnSave": true,
     "editor.tabSize": 4,

@@ -15,23 +15,21 @@ rust = { version = "1.97.1", components = [
 description = "Setup the project"
 run = "git config --local include.path ../.gitconfig"
 
-# invocato dalla CI, non pensato per l'uso manuale
-[tasks."rust:clippy-ci"]
-description = "Lint del workspace, warning come errori"
-hide = true
-run = "cargo clippy --profile ci --workspace --all-targets -- -D warnings"
-
 # invocato da rust-analyzer, output JSON non leggibile a mano
 [tasks."rust:clippy-editor"]
 description = "Clippy in formato JSON, per rust-analyzer.check.overrideCommand"
 hide = true
 run = "cargo clippy --all-targets --message-format=json-diagnostic-rendered-ansi"
 
-# invocato dalla CI, non pensato per l'uso manuale
-[tasks."rust:fmt-ci"]
-description = "Verifica la formattazione senza modificare i file"
+# invocato dalla CI, non pensato per l'uso manuale. fmt, clippy e test in una
+# sola invocazione di mise (un solo step nel workflow) così il toolchain viene
+# risolto una volta sola invece che ripetersi ad ogni step; tutti e tre usano
+# lo stesso profilo cargo "ci" per condividere la target dir ed evitare di
+# ricompilare i crate due volte (clippy con un profilo, i test con un altro)
+[tasks."rust:ci"]
+description = "Fmt, clippy e test del workspace, warning come errori"
 hide = true
-run = "cargo fmt --all -- --check"
+run = "cargo fmt --all -- --check && cargo clippy --profile ci --workspace --all-targets -- -D warnings && cargo nextest run --workspace --no-tests=warn --cargo-profile ci"
 
 [tasks."rust:test"]
 description = "Esegue la test suite del workspace con nextest"
