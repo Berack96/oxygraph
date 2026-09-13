@@ -1,5 +1,5 @@
 <!--
-PR TITLE: Use Conventional Commits format (e.g., feat(finance): complete tax engine schema)
+PR TITLE: Use Conventional Commits format (e.g., feat(algo): add Dijkstra shortest path)
 -->
 
 ## Summary
@@ -17,7 +17,6 @@ Closes #
 ## Type of Change
 - [ ] New feature
 - [ ] Bug fix
-- [ ] Database schema / migration
 - [ ] Refactoring / Maintenance
 - [ ] Tooling / CI/CD
 - [ ] Breaking change
@@ -35,11 +34,3 @@ Closes #
 ## How to Test
 1. Run: `...`
 2. Verify that: `...`
-
----
-
-## Deployment / Migration Notes
-<!-- New environment variables, migrations to run, or dependencies to install -->
-- [ ] Migrations to run
-- [ ] New environment variables in `.env`
-- [ ] N/A
