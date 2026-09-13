@@ -26,3 +26,14 @@ run = "cargo clippy --profile ci --workspace --all-targets -- -D warnings"
 description = "Clippy in formato JSON, per rust-analyzer.check.overrideCommand"
 hide = true
 run = "cargo clippy --all-targets --message-format=json-diagnostic-rendered-ansi"
+
+# invocato dalla CI, non pensato per l'uso manuale
+[tasks."rust:fmt-ci"]
+description = "Verifica la formattazione senza modificare i file"
+hide = true
+run = "cargo fmt --all -- --check"
+
+[tasks."rust:test"]
+description = "Esegue la test suite del workspace con nextest"
+# --no-tests=warn: nessun crate ha ancora test, altrimenti nextest fallirebbe a vuoto
+run = "cargo nextest run --workspace --no-tests=warn"
