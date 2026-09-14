@@ -21,11 +21,11 @@
             "source.organizeImports.rust-analyzer": "explicit"
         }
     },
-    "rust-analyzer.check.overrideCommand": [
-        "mise",
-        "run",
-        "rust:clippy-editor"
-    ],
+    // "rust-analyzer.check.overrideCommand": [
+    //     "mise",
+    //     "run",
+    //     "rust:clippy-editor"
+    // ],
     "rust-analyzer.cargo.buildScripts.enable": true,
     "mise.configureExtensionsAutomatically": true,
     "mise.checkForNewMiseVersion": false,
