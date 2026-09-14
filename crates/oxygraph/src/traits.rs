@@ -1,10 +1,12 @@
 use crate::ids::{Edge, VertexId};
-use oxygraph_derive::base_model;
+use oxygraph_derive::serde_feature;
 
-/// In teoria questa è quella giusta, ma manca da definire bene l'interfaccia e come indicare se è direzionato o meno.
-/// Avevo in mente di passarlo come parametro di compilazione, in modo che anche le viste possano essere ottimizzate in base ad esso.
-/// Non saprei come farlo però, dato che è da pensarci sopra.
-#[base_model]
+#[serde_feature]
+pub trait GraphDirectionality {
+    fn is_directed(&self) -> bool;
+}
+
+#[serde_feature]
 pub trait GraphEdgeStorage<E, D>
 where
     D: GraphDirectionality,
@@ -18,16 +20,6 @@ where
     fn edges<'a>(&'a self) -> impl Iterator<Item = &'a Edge<E>>
     where
         E: 'a;
-}
-
-pub trait EdgeStorage<E>: Clone + std::fmt::Debug + std::marker::Sized
-where
-    E: Clone + std::fmt::Debug,
-{
-    fn add_to(&mut self, edge: Edge<E>);
-    fn remove(&mut self, id: &VertexId) -> Option<E>;
-    fn has_edge(&self, id: &VertexId) -> bool;
-    fn get_all(&self) -> &[Edge<E>];
 }
 
 pub trait GraphView {

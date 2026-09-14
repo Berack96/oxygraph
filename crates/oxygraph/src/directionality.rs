@@ -1,6 +1,5 @@
 use crate::traits::GraphDirectionality;
 
-#[derive(Default, Clone, Debug)]
 pub struct Directed;
 impl GraphDirectionality for Directed {
     fn is_directed(&self) -> bool {
@@ -8,7 +7,6 @@ impl GraphDirectionality for Directed {
     }
 }
 
-#[derive(Default, Clone, Debug)]
 pub struct Undirected;
 impl GraphDirectionality for Undirected {
     fn is_directed(&self) -> bool {

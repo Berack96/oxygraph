@@ -13,4 +13,7 @@ serde = { version = "1.0", optional = true, features = ["derive"] }
 
 [features]
 default = ["oxygraph-derive"]
-serde = ["dep:serde"]         # Enable serialization and deserialization support
+serde = [
+	"oxygraph-derive/serde",
+	"dep:serde",
+] # Enable serialization and deserialization support
