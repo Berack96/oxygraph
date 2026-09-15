@@ -12,8 +12,16 @@ use crate::{
     ids::{EdgeView, VertexId},
 };
 
+pub trait GraphEdgeIter<E: 'static, I>
+where
+    I: Unsigned + PrimInt,
+{
+    fn edges_of(&self, id: VertexId<I>) -> impl Iterator<Item = EdgeView<'_, E, I>>;
+    fn edges(&self) -> impl Iterator<Item = EdgeView<'_, E, I>>;
+}
+
 #[serde_feature]
-pub trait GraphEdgeStorage<E, I>
+pub trait GraphEdgeStorage<E: 'static, I>: GraphEdgeIter<E, I>
 where
     I: Unsigned + PrimInt,
 {
@@ -22,10 +30,4 @@ where
     fn add_edge(&mut self, from: VertexId<I>, to: VertexId<I>, data: E);
     fn remove_edge(&mut self, from: VertexId<I>, to: VertexId<I>) -> Option<E>;
     fn has_edge(&self, from: &VertexId<I>, to: &VertexId<I>) -> bool;
-    fn edges_of<'a>(&'a self, id: &VertexId<I>) -> impl Iterator<Item = EdgeView<'a, E, I>>
-    where
-        E: 'a;
-    fn edges<'a>(&'a self) -> impl Iterator<Item = EdgeView<'a, E, I>>
-    where
-        E: 'a;
 }

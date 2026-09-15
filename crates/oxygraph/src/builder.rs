@@ -3,12 +3,12 @@ use std::marker::PhantomData;
 use num_traits::{PrimInt, Unsigned};
 
 use crate::{
+    edges::GraphEdgeStorage,
+    edges::{AdjList, AdjListFixed},
     graph::Graph,
-    storage::GraphEdgeStorage,
-    storage::{AdjList, AdjListFixed},
 };
 
-pub struct GraphBuilder<V, E, I = u32, S = AdjList<E, I>>
+pub struct GraphBuilder<V: 'static, E: 'static, I = u32, S = AdjList<E, I>>
 where
     I: Unsigned + PrimInt,
     S: GraphEdgeStorage<E, I>,
@@ -18,11 +18,7 @@ where
     _marker: PhantomData<(V, E, I, S)>,
 }
 
-impl<V, E, I, S> GraphBuilder<V, E, I, S>
-where
-    I: Unsigned + PrimInt,
-    S: GraphEdgeStorage<E, I>,
-{
+impl<V, E> GraphBuilder<V, E> {
     pub fn new() -> Self {
         Self {
             capacity: 1, // If zero then no allocation for vec
@@ -38,7 +34,7 @@ where
     S: GraphEdgeStorage<E, I>,
 {
     // Transizione da Dyn a Fixed usando const generics
-    pub fn with_fixed_max_degree<const N: usize>(
+    pub fn as_adjlist_fixed_max_degree<const N: usize>(
         self,
     ) -> GraphBuilder<V, E, I, AdjListFixed<E, I, N>> {
         GraphBuilder {
@@ -49,7 +45,7 @@ where
     }
 
     // Transizione esplicita a Dynamic
-    pub fn with_unlimited_degree(self) -> GraphBuilder<V, E, I, AdjList<E, I>> {
+    pub fn as_adjlist(self) -> GraphBuilder<V, E, I, AdjList<E, I>> {
         GraphBuilder {
             capacity: self.capacity,
             directed: self.directed,

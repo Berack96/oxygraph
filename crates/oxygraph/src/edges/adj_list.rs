@@ -3,12 +3,11 @@ use oxygraph_derive::serde_feature;
 
 use crate::{
     directionality::Directed,
+    edges::{GraphEdgeIter, GraphEdgeStorage},
     ids::{EdgeView, VertexId},
-    storage::GraphEdgeStorage,
 };
 
-#[serde_feature]
-pub struct Edge<E, I>
+struct Edge<E, I>
 where
     I: Unsigned + PrimInt,
 {
@@ -17,16 +16,11 @@ where
 }
 
 #[serde_feature]
-pub struct AdjListFixed<E, I, const N: usize>
-where
-    I: Unsigned + PrimInt,
-{
-    edges: Vec<[Edge<E, I>; N]>,
+pub struct AdjList<E, I: Unsigned + PrimInt> {
+    edges: Vec<Vec<Edge<E, I>>>,
 }
-impl<E, I, const N: usize> AdjListFixed<E, I, N>
-where
-    I: Unsigned + PrimInt,
-{
+
+impl<E, I: Unsigned + PrimInt> AdjList<E, I> {
     pub fn new() -> Self {
         Self { edges: Vec::new() }
     }
@@ -38,13 +32,15 @@ where
     }
 }
 
-impl<E, I, const N: usize> GraphEdgeStorage<E, I> for AdjListFixed<E, I, N>
+impl<E: 'static, I> GraphEdgeStorage<E, I> for AdjList<E, I>
 where
     I: Unsigned + PrimInt,
 {
     type Directionality = Directed;
 
-    fn add_edge(&mut self, from: VertexId<I>, to: VertexId<I>, edge: E) {}
+    fn add_edge(&mut self, from: VertexId<I>, to: VertexId<I>, data: E) {
+        todo!()
+    }
 
     fn remove_edge(&mut self, from: VertexId<I>, to: VertexId<I>) -> Option<E> {
         todo!()
@@ -53,21 +49,24 @@ where
     fn has_edge(&self, from: &VertexId<I>, to: &VertexId<I>) -> bool {
         todo!()
     }
+}
 
-    fn edges_of<'a>(&'a self, id: &VertexId<I>) -> impl Iterator<Item = EdgeView<'a, E, I>>
-    where
-        E: 'a,
-    {
+impl<E: 'static, I> GraphEdgeIter<E, I> for AdjList<E, I>
+where
+    I: Unsigned + PrimInt,
+{
+    fn edges_of(&self, id: VertexId<I>) -> impl Iterator<Item = EdgeView<'_, E, I>> {
         let vert_id = id.id();
-        self.edges[vert_id]
-            .iter()
-            .map(|edge| EdgeView::new(id.clone(), edge.to, &edge.data))
+        self.edges[vert_id].iter().filter_map(move |edge| {
+            if edge.to == id {
+                Some(EdgeView::new(id.clone(), edge.to, &edge.data))
+            } else {
+                None
+            }
+        })
     }
 
-    fn edges<'a>(&'a self) -> impl Iterator<Item = EdgeView<'a, E, I>>
-    where
-        E: 'a,
-    {
+    fn edges(&self) -> impl Iterator<Item = EdgeView<'_, E, I>> {
         self.edges.iter().enumerate().flat_map(|(from_id, edges)| {
             let from_vertex = VertexId::new(from_id);
             edges

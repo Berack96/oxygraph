@@ -2,12 +2,16 @@
 
 use num_traits::{PrimInt, Unsigned};
 use oxygraph_derive::serde_feature;
-use std::{fmt::Debug, marker::PhantomData};
+use std::{marker::PhantomData, path::Iter};
 
-use crate::{ids::VertexId, storage::GraphEdgeStorage};
+use crate::{
+    EdgeView,
+    edges::{GraphEdgeIter, GraphEdgeStorage},
+    ids::VertexId,
+};
 
 #[serde_feature]
-pub struct Graph<V, E, I, S>
+pub struct Graph<V: 'static, E: 'static, I, S>
 where
     I: Unsigned + PrimInt,
     S: GraphEdgeStorage<E, I>,
@@ -48,12 +52,79 @@ where
 }
 
 #[serde_feature]
-pub struct GraphView<'a, V, E, I, S>
+pub struct GraphFilters<V: 'static, E: 'static> {
+    vertices: Option<fn(&V) -> bool>,
+    edges: Option<fn(&E) -> bool>,
+}
+
+#[serde_feature]
+pub struct GraphView<'a, V: 'static, E: 'static, I, S>
 where
     I: Unsigned + PrimInt,
     S: GraphEdgeStorage<E, I>,
 {
-    vertices: &'a [V],
-    edge_storage: &'a S,
+    graph: &'a Graph<V, E, I, S>,
+    filters: GraphFilters<V, E>,
     _marker: PhantomData<(E, I)>,
+}
+
+impl<'a, V, E, I, S> GraphView<'a, V, E, I, S>
+where
+    I: Unsigned + PrimInt,
+    S: GraphEdgeStorage<E, I>,
+{
+    pub fn new(graph: &'a Graph<V, E, I, S>) -> GraphView<'a, V, E, I, S> {
+        Self {
+            graph,
+            filters: GraphFilters {
+                vertices: None,
+                edges: None,
+            },
+            _marker: PhantomData,
+        }
+    }
+
+    pub fn get_vertex(&self, id: VertexId<I>) -> Option<&V> {
+        let vertex = self.graph.vertices.get(id.id());
+        if let Some(v) = vertex {
+            self.filters
+                .vertices
+                .map_or(true, |filter| filter(v))
+                .then(|| v)
+        } else {
+            None
+        }
+    }
+}
+
+impl<V: 'static, E: 'static, I, S> GraphEdgeIter<E, I> for GraphView<'_, V, E, I, S>
+where
+    I: Unsigned + PrimInt,
+    S: GraphEdgeStorage<E, I>,
+{
+    fn edges_of(&self, id: VertexId<I>) -> impl Iterator<Item = EdgeView<'_, E, I>> {
+        let vertex = self.graph.vertices.get(id.id());
+        let edges = self.graph.edge_storage.edges_of(id);
+        let filter_edg = self.filters.edges;
+        let filter_ver = self.filters.vertices;
+
+        edges
+            .filter(move |_| !vertex.is_none())
+            .filter(move |e| match filter_ver {
+                Some(f) => self.graph.get_vertex(e.to).map_or(false, f),
+                None => true,
+            })
+            .filter(move |e| match filter_edg {
+                Some(f) => f(e.data),
+                None => true,
+            })
+    }
+
+    fn edges(&self) -> impl Iterator<Item = EdgeView<'_, E, I>> {
+        self.graph
+            .vertices
+            .iter()
+            .enumerate()
+            .filter_map(move |(i, _)| self.graph.edge_storage.edges_of(VertexId::new(i)).next())
+    }
 }
