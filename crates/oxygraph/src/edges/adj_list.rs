@@ -37,6 +37,7 @@ where
     I: Unsigned + PrimInt,
 {
     type Directionality = Directed;
+    type Index<J: Unsigned + PrimInt> = AdjList<E, J>;
 
     fn add_edge(&mut self, from: VertexId<I>, to: VertexId<I>, data: E) {
         todo!()

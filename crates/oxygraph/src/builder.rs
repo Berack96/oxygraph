@@ -53,10 +53,9 @@ where
         }
     }
 
-    pub fn change_vec_indexing<J>(self) -> GraphBuilder<V, E, J, S>
+    pub fn change_vec_indexing<J>(self) -> GraphBuilder<V, E, J, S::Index<J>>
     where
         J: Unsigned + PrimInt,
-        S: GraphEdgeStorage<E, J>,
     {
         GraphBuilder {
             capacity: self.capacity,

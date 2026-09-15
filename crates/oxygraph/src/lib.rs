@@ -8,7 +8,8 @@ mod ids;
 mod visits;
 
 pub use builder::GraphBuilder;
-pub use directionality::{Directed, Undirected};
-pub use edges::{AdjList, AdjListFixed};
-pub use graph::Graph;
+pub use directionality::{Directed, GraphDirectionality, Undirected};
+pub use edges::{AdjList, AdjListFixed, GraphEdgeIter, GraphEdgeStorage};
+pub use graph::{Graph, GraphView};
 pub use ids::{EdgeView, VertexId};
+pub use visits::{ViewVisit, VisitResult};

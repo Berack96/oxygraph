@@ -2,7 +2,7 @@
 
 use num_traits::{PrimInt, Unsigned};
 use oxygraph_derive::serde_feature;
-use std::{marker::PhantomData, path::Iter};
+use std::marker::PhantomData;
 
 use crate::{
     EdgeView,

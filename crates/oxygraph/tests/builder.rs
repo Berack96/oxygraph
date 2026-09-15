@@ -33,4 +33,29 @@ mod test_builder {
 
         graph.run_with(|vertices, _| assert_eq!(vertices.capacity(), 4));
     }
+
+    #[test]
+    fn changes_vertex_index_type_with_dynamic_storage() {
+        let mut graph = GraphBuilder::<String, f32>::new()
+            .change_vec_indexing::<u16>()
+            .build();
+
+        let vertex_id = graph.add_vertex(String::from("vertex"));
+
+        assert_eq!(vertex_id, oxygraph::VertexId::<u16>::new(0));
+        assert_eq!(graph.get_vertex(vertex_id), Some(&String::from("vertex")));
+    }
+
+    #[test]
+    fn changes_vertex_index_type_with_fixed_storage() {
+        let mut graph = GraphBuilder::<String, f32>::new()
+            .as_adjlist_fixed_max_degree::<6>()
+            .change_vec_indexing::<u16>()
+            .build();
+
+        let vertex_id = graph.add_vertex(String::from("vertex"));
+
+        assert_eq!(vertex_id, oxygraph::VertexId::<u16>::new(0));
+        assert_eq!(graph.get_vertex(vertex_id), Some(&String::from("vertex")));
+    }
 }

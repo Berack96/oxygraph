@@ -26,6 +26,7 @@ where
     I: Unsigned + PrimInt,
 {
     type Directionality: GraphDirectionality;
+    type Index<J: Unsigned + PrimInt>: GraphEdgeStorage<E, J>;
 
     fn add_edge(&mut self, from: VertexId<I>, to: VertexId<I>, data: E);
     fn remove_edge(&mut self, from: VertexId<I>, to: VertexId<I>) -> Option<E>;
