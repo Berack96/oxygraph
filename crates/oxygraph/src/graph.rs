@@ -1,54 +1,59 @@
 //! Struct central to the library, representing a graph and its associated data structures.
 
+use num_traits::{PrimInt, Unsigned};
+use oxygraph_derive::serde_feature;
 use std::{fmt::Debug, marker::PhantomData};
 
-use crate::{ids::VertexId, traits::EdgeStorage};
+use crate::{ids::VertexId, storage::GraphEdgeStorage};
 
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Graph<V, E, S>
+#[serde_feature]
+pub struct Graph<V, E, I, S>
 where
-    V: Clone + Debug,
-    E: Clone + Debug,
-    S: EdgeStorage<E>,
+    I: Unsigned + PrimInt,
+    S: GraphEdgeStorage<E, I>,
 {
     vertices: Vec<V>,
-    edges: Vec<S>,
-    _marker: PhantomData<E>,
+    edge_storage: S,
+    _marker: PhantomData<(E, I)>,
 }
 
-impl<V, E, S> Graph<V, E, S>
+impl<V, E, I, S> Graph<V, E, I, S>
 where
-    V: Clone + Debug,
-    E: Clone + Debug,
-    S: Clone + Debug + EdgeStorage<E>,
+    I: Unsigned + PrimInt,
+    S: GraphEdgeStorage<E, I>,
 {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new_with(vertices: Vec<V>, edge_storage: S) -> Self {
         Self {
-            vertices: Vec::new(),
-            edges: Vec::new(),
+            vertices,
+            edge_storage,
             _marker: PhantomData,
         }
     }
 
-    pub(crate) fn with_capacity(capacity: usize) -> Self {
-        Self {
-            vertices: Vec::with_capacity(capacity),
-            edges: Vec::with_capacity(capacity),
-            _marker: PhantomData,
-        }
-    }
-
-    pub fn add_vertex(&mut self, vertex: V) -> VertexId {
+    pub fn add_vertex(&mut self, vertex: V) -> VertexId<I> {
         self.vertices.push(vertex);
-        VertexId(self.vertices.len() - 1)
+        VertexId::new(self.vertices.len() - 1)
     }
 
-    pub fn get_vertex(&self, id: usize) -> Option<&V> {
-        self.vertices.get(id)
+    pub fn get_vertex(&self, id: VertexId<I>) -> Option<&V> {
+        self.vertices.get(id.id())
     }
 
-    pub fn get_edges(&self, id: usize) -> Option<&S> {
-        self.edges.get(id)
+    pub fn run_with<F, R>(&mut self, f: F) -> R
+    where
+        F: FnOnce(&mut Vec<V>, &mut S) -> R,
+    {
+        f(&mut self.vertices, &mut self.edge_storage)
     }
+}
+
+#[serde_feature]
+pub struct GraphView<'a, V, E, I, S>
+where
+    I: Unsigned + PrimInt,
+    S: GraphEdgeStorage<E, I>,
+{
+    vertices: &'a [V],
+    edge_storage: &'a S,
+    _marker: PhantomData<(E, I)>,
 }

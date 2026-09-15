@@ -1,4 +1,9 @@
-use crate::traits::GraphDirectionality;
+use oxygraph_derive::serde_feature;
+
+#[serde_feature]
+pub trait GraphDirectionality {
+    fn is_directed(&self) -> bool;
+}
 
 pub struct Directed;
 impl GraphDirectionality for Directed {

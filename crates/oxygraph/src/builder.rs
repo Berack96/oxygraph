@@ -1,40 +1,46 @@
 use std::marker::PhantomData;
 
+use num_traits::{PrimInt, Unsigned};
+
 use crate::{
     graph::Graph,
-    storage::{Array, List},
-    traits::EdgeStorage,
+    storage::GraphEdgeStorage,
+    storage::{AdjList, AdjListFixed},
 };
 
-enum StorageStrategy<const N: usize> {
-    Fixed,
-    Dynamic,
-}
-
-pub struct GraphBuilder<V, E, S = List<E>> {
+pub struct GraphBuilder<V, E, I = u32, S = AdjList<E, I>>
+where
+    I: Unsigned + PrimInt,
+    S: GraphEdgeStorage<E, I>,
+{
     capacity: usize,
     directed: bool,
-    _marker: PhantomData<(V, E, S)>,
+    _marker: PhantomData<(V, E, I, S)>,
 }
 
-impl<V, E> GraphBuilder<V, E, List<E>> {
+impl<V, E, I, S> GraphBuilder<V, E, I, S>
+where
+    I: Unsigned + PrimInt,
+    S: GraphEdgeStorage<E, I>,
+{
     pub fn new() -> Self {
         Self {
-            capacity: 0,
+            capacity: 1, // If zero then no allocation for vec
             directed: false,
             _marker: PhantomData,
         }
     }
 }
 
-impl<V, E, S> GraphBuilder<V, E, S>
+impl<V, E, I, S> GraphBuilder<V, E, I, S>
 where
-    V: Clone + std::fmt::Debug,
-    E: Clone + std::fmt::Debug,
-    S: EdgeStorage<E>,
+    I: Unsigned + PrimInt,
+    S: GraphEdgeStorage<E, I>,
 {
     // Transizione da Dyn a Fixed usando const generics
-    pub fn with_fixed_max_degree<const N: usize>(self) -> GraphBuilder<V, E, Array<E, N>> {
+    pub fn with_fixed_max_degree<const N: usize>(
+        self,
+    ) -> GraphBuilder<V, E, I, AdjListFixed<E, I, N>> {
         GraphBuilder {
             capacity: self.capacity,
             directed: self.directed,
@@ -43,7 +49,19 @@ where
     }
 
     // Transizione esplicita a Dynamic
-    pub fn with_unlimited_degree(self) -> GraphBuilder<V, E, List<E>> {
+    pub fn with_unlimited_degree(self) -> GraphBuilder<V, E, I, AdjList<E, I>> {
+        GraphBuilder {
+            capacity: self.capacity,
+            directed: self.directed,
+            _marker: PhantomData,
+        }
+    }
+
+    pub fn change_vec_indexing<J>(self) -> GraphBuilder<V, E, J, S>
+    where
+        J: Unsigned + PrimInt,
+        S: GraphEdgeStorage<E, J>,
+    {
         GraphBuilder {
             capacity: self.capacity,
             directed: self.directed,
@@ -52,7 +70,7 @@ where
     }
 
     pub fn with_capacity(mut self, capacity: usize) -> Self {
-        self.capacity = capacity;
+        self.capacity = if capacity == 0 { 1 } else { capacity };
         self
     }
 
@@ -63,23 +81,27 @@ where
 }
 
 // Build per storage dinamico
-impl<V, E> GraphBuilder<V, E, List<E>>
+impl<V, E, I> GraphBuilder<V, E, I, AdjList<E, I>>
 where
-    V: Clone + std::fmt::Debug,
-    E: Clone + std::fmt::Debug,
+    I: Unsigned + PrimInt,
 {
-    pub fn build(self) -> Graph<V, E, List<E>> {
-        Graph::with_capacity(self.capacity)
+    pub fn build(self) -> Graph<V, E, I, AdjList<E, I>> {
+        Graph::new_with(
+            Vec::with_capacity(self.capacity),
+            AdjList::with_capacity(self.capacity),
+        )
     }
 }
 
 // Build per storage fisso
-impl<V, E, const N: usize> GraphBuilder<V, E, Array<E, N>>
+impl<V, E, I, const N: usize> GraphBuilder<V, E, I, AdjListFixed<E, I, N>>
 where
-    V: Clone + std::fmt::Debug,
-    E: Clone + std::fmt::Debug,
+    I: Unsigned + PrimInt,
 {
-    pub fn build(self) -> Graph<V, E, Array<E, N>> {
-        Graph::with_capacity(self.capacity)
+    pub fn build(self) -> Graph<V, E, I, AdjListFixed<E, I, N>> {
+        Graph::new_with(
+            Vec::with_capacity(self.capacity),
+            AdjListFixed::with_capacity(self.capacity),
+        )
     }
 }
