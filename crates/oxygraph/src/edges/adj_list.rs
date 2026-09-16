@@ -40,15 +40,21 @@ where
     type Index<J: Unsigned + PrimInt> = AdjList<E, J>;
 
     fn add_edge(&mut self, from: VertexId<I>, to: VertexId<I>, data: E) {
-        todo!()
+        let from = from.id();
+        self.edges.resize_with(from + 1, Vec::new);
+        self.edges[from].push(Edge { to, data });
     }
 
     fn remove_edge(&mut self, from: VertexId<I>, to: VertexId<I>) -> Option<E> {
-        todo!()
+        let edges = self.edges.get_mut(from.id())?;
+        let index = edges.iter().position(|edge| edge.to == to)?;
+        Some(edges.remove(index).data)
     }
 
     fn has_edge(&self, from: &VertexId<I>, to: &VertexId<I>) -> bool {
-        todo!()
+        self.edges
+            .get(from.id())
+            .is_some_and(|edges| edges.iter().any(|edge| edge.to == *to))
     }
 }
 
@@ -58,13 +64,11 @@ where
 {
     fn edges_of(&self, id: VertexId<I>) -> impl Iterator<Item = EdgeView<'_, E, I>> {
         let vert_id = id.id();
-        self.edges[vert_id].iter().filter_map(move |edge| {
-            if edge.to == id {
-                Some(EdgeView::new(id.clone(), edge.to, &edge.data))
-            } else {
-                None
-            }
-        })
+        self.edges
+            .get(vert_id)
+            .into_iter()
+            .flatten()
+            .map(move |edge| EdgeView::new(id, edge.to, &edge.data))
     }
 
     fn edges(&self) -> impl Iterator<Item = EdgeView<'_, E, I>> {
