@@ -5,10 +5,7 @@ struct NoopVisitor;
 impl<'a> ViewVisit<'a, String, (), u32, AdjList<(), u32>> for NoopVisitor {
     type Directionality = Directed;
 
-    fn visit(
-        &self,
-        _graph: &GraphView<'a, String, (), u32, AdjList<(), u32>>,
-    ) -> VisitResult {
+    fn visit(&self, _graph: &GraphView<'a, String, (), u32, AdjList<(), u32>>) -> VisitResult {
         Ok(())
     }
 }

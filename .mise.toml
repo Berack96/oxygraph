@@ -29,7 +29,15 @@ run = "cargo clippy --all-targets --message-format=json-diagnostic-rendered-ansi
 [tasks."rust:ci"]
 description = "Fmt, clippy e test del workspace, warning come errori"
 hide = true
-run = "cargo fmt --all -- --check && cargo clippy --profile ci --workspace --all-targets -- -D warnings && cargo nextest run --workspace --no-tests=warn --cargo-profile ci"
+run = [
+	"cargo fmt --all -- --check",
+	"cargo clippy --profile ci --workspace --all-targets -- -D warnings",
+	"cargo nextest run --workspace --no-tests=warn --cargo-profile ci",
+]
+
+[tasks."rust:fmt"]
+description = "Formatta il codice del workspace"
+run = "cargo fmt --all"
 
 [tasks."rust:test"]
 description = "Esegue la test suite del workspace con nextest"
