@@ -35,3 +35,8 @@ run = "cargo fmt --all -- --check && cargo clippy --profile ci --workspace --all
 description = "Esegue la test suite del workspace con nextest"
 # --no-tests=warn: nessun crate ha ancora test, altrimenti nextest fallirebbe a vuoto
 run = "cargo nextest run --workspace --no-tests=warn"
+
+[tasks."rust:bench"]
+description = "Esegue i benchmark con Divan"
+usage = 'arg "[samples]" help="Numero di sample Divan" default="100"'
+run = "cargo bench --bench graph_bench -- --sample-count {{ usage.samples }}"

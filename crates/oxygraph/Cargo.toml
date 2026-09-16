@@ -18,3 +18,10 @@ serde = [
 	"oxygraph-derive/serde",
 	"dep:serde",
 ] # Enable serialization and deserialization support
+
+[dev-dependencies]
+divan = "0.1.21"
+
+[[bench]]
+name = "graph_bench"
+harness = false
