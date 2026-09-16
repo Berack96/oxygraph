@@ -88,8 +88,8 @@ where
         if let Some(v) = vertex {
             self.filters
                 .vertices
-                .map_or(true, |filter| filter(v))
-                .then(|| v)
+                .is_none_or(|filter| filter(v))
+                .then_some(v)
         } else {
             None
         }
@@ -110,7 +110,7 @@ where
         edges
             .filter(move |_| !vertex.is_none())
             .filter(move |e| match filter_ver {
-                Some(f) => self.graph.get_vertex(e.to).map_or(false, f),
+                Some(f) => self.graph.get_vertex(e.to).is_some_and(f),
                 None => true,
             })
             .filter(move |e| match filter_edg {

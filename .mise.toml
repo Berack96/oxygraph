@@ -19,7 +19,7 @@ run = "git config --local include.path ../.gitconfig"
 [tasks."rust:clippy-editor"]
 description = "Clippy in formato JSON, per rust-analyzer.check.overrideCommand"
 hide = true
-run = "cargo clippy --all-targets --message-format=json-diagnostic-rendered-ansi"
+run = "cargo clippy --all-targets --message-format=json-diagnostic-rendered-ansi -- -D warnings"
 
 # invocato dalla CI, non pensato per l'uso manuale. fmt, clippy e test in una
 # sola invocazione di mise (un solo step nel workflow) così il toolchain viene

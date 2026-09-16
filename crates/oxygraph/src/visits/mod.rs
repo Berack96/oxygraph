@@ -14,4 +14,4 @@ where
         S: GraphEdgeStorage<E, I, Directionality = Self::Directionality>;
 }
 
-pub type VisitResult = Result<(), ()>;
+pub type VisitResult = Result<(), String>;

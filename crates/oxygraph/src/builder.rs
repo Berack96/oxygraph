@@ -26,6 +26,12 @@ impl<V, E> GraphBuilder<V, E> {
     }
 }
 
+impl<V, E> Default for GraphBuilder<V, E> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<V, E, I, S> GraphBuilder<V, E, I, S>
 where
     I: UnsignedId,

@@ -12,11 +12,11 @@ struct Edge<E, I: UnsignedId> {
 }
 
 #[serde_feature]
-pub struct AdjList<E, I: UnsignedId> {
+pub struct AdjList<E: 'static, I: UnsignedId> {
     edges: Vec<Vec<Edge<E, I>>>,
 }
 
-impl<E, I: UnsignedId> AdjList<E, I> {
+impl<E: 'static, I: UnsignedId> AdjList<E, I> {
     pub fn new() -> Self {
         Self { edges: Vec::new() }
     }
@@ -28,10 +28,13 @@ impl<E, I: UnsignedId> AdjList<E, I> {
     }
 }
 
-impl<E: 'static, I> GraphEdgeStorage<E, I> for AdjList<E, I>
-where
-    I: UnsignedId,
-{
+impl<E: 'static, I: UnsignedId> Default for AdjList<E, I> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<E: 'static, I: UnsignedId> GraphEdgeStorage<E, I> for AdjList<E, I> {
     type Directionality = Directed;
     type Index<J: UnsignedId> = AdjList<E, J>;
 
@@ -54,10 +57,7 @@ where
     }
 }
 
-impl<E: 'static, I> GraphEdgeIter<E, I> for AdjList<E, I>
-where
-    I: UnsignedId,
-{
+impl<E: 'static, I: UnsignedId> GraphEdgeIter<E, I> for AdjList<E, I> {
     fn edges_of(&self, id: VertexId<I>) -> impl Iterator<Item = EdgeView<'_, E, I>> {
         let vert_id = id.id();
         self.edges
@@ -72,7 +72,7 @@ where
             let from_vertex = VertexId::new(from_id);
             edges
                 .iter()
-                .map(move |edge| EdgeView::new(from_vertex.clone(), edge.to, &edge.data))
+                .map(move |edge| EdgeView::new(from_vertex, edge.to, &edge.data))
         })
     }
 }

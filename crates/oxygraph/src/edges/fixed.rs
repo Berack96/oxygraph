@@ -13,10 +13,10 @@ pub struct Edge<E, I: UnsignedId> {
 }
 
 #[serde_feature]
-pub struct AdjListFixed<E, I: UnsignedId, const N: usize> {
+pub struct AdjListFixed<E: 'static, I: UnsignedId, const N: usize> {
     edges: Vec<[Option<Edge<E, I>>; N]>,
 }
-impl<E, I: UnsignedId, const N: usize> AdjListFixed<E, I, N> {
+impl<E: 'static, I: UnsignedId, const N: usize> AdjListFixed<E, I, N> {
     pub fn new() -> Self {
         Self { edges: Vec::new() }
     }
@@ -25,6 +25,12 @@ impl<E, I: UnsignedId, const N: usize> AdjListFixed<E, I, N> {
         Self {
             edges: Vec::with_capacity(capacity),
         }
+    }
+}
+
+impl<E: 'static, I: UnsignedId, const N: usize> Default for AdjListFixed<E, I, N> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

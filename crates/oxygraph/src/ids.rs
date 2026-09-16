@@ -33,7 +33,7 @@ pub struct VertexId<I: UnsignedId>(pub I::NonZero);
 
 impl<I: UnsignedId> VertexId<I> {
     pub fn new(id: usize) -> Self {
-        Self { 0: I::to_nz(id) }
+        Self(I::to_nz(id))
     }
 
     pub fn id(&self) -> usize {
