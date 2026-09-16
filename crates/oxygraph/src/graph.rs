@@ -1,19 +1,18 @@
 //! Struct central to the library, representing a graph and its associated data structures.
 
-use num_traits::{PrimInt, Unsigned};
 use oxygraph_derive::serde_feature;
 use std::marker::PhantomData;
 
 use crate::{
     EdgeView,
     edges::{GraphEdgeIter, GraphEdgeStorage},
-    ids::VertexId,
+    ids::{UnsignedId, VertexId},
 };
 
 #[serde_feature]
 pub struct Graph<V: 'static, E: 'static, I, S>
 where
-    I: Unsigned + PrimInt,
+    I: UnsignedId,
     S: GraphEdgeStorage<E, I>,
 {
     vertices: Vec<V>,
@@ -23,7 +22,7 @@ where
 
 impl<V, E, I, S> Graph<V, E, I, S>
 where
-    I: Unsigned + PrimInt,
+    I: UnsignedId,
     S: GraphEdgeStorage<E, I>,
 {
     pub(crate) fn new_with(vertices: Vec<V>, edge_storage: S) -> Self {
@@ -60,7 +59,7 @@ pub struct GraphFilters<V: 'static, E: 'static> {
 #[serde_feature]
 pub struct GraphView<'a, V: 'static, E: 'static, I, S>
 where
-    I: Unsigned + PrimInt,
+    I: UnsignedId,
     S: GraphEdgeStorage<E, I>,
 {
     graph: &'a Graph<V, E, I, S>,
@@ -70,7 +69,7 @@ where
 
 impl<'a, V, E, I, S> GraphView<'a, V, E, I, S>
 where
-    I: Unsigned + PrimInt,
+    I: UnsignedId,
     S: GraphEdgeStorage<E, I>,
 {
     pub fn new(graph: &'a Graph<V, E, I, S>) -> GraphView<'a, V, E, I, S> {
@@ -99,7 +98,7 @@ where
 
 impl<V: 'static, E: 'static, I, S> GraphEdgeIter<E, I> for GraphView<'_, V, E, I, S>
 where
-    I: Unsigned + PrimInt,
+    I: UnsignedId,
     S: GraphEdgeStorage<E, I>,
 {
     fn edges_of(&self, id: VertexId<I>) -> impl Iterator<Item = EdgeView<'_, E, I>> {

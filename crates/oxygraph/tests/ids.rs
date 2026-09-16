@@ -8,8 +8,10 @@ fn creates_vertex_ids_from_usize() {
 }
 
 #[test]
-fn exposes_the_index_type_maximum() {
-    assert_eq!(VertexId::<u8>::max(), u8::MAX);
+fn creates_the_highest_representable_vertex_id() {
+    let id = VertexId::<u8>::new((u8::MAX - 1) as usize);
+
+    assert_eq!(id.id(), (u8::MAX - 1) as usize);
 }
 
 #[test]

@@ -1,16 +1,14 @@
 use std::marker::PhantomData;
 
-use num_traits::{PrimInt, Unsigned};
-
 use crate::{
-    edges::GraphEdgeStorage,
-    edges::{AdjList, AdjListFixed},
+    edges::{AdjList, AdjListFixed, GraphEdgeStorage},
     graph::Graph,
+    ids::UnsignedId,
 };
 
 pub struct GraphBuilder<V: 'static, E: 'static, I = u32, S = AdjList<E, I>>
 where
-    I: Unsigned + PrimInt,
+    I: UnsignedId,
     S: GraphEdgeStorage<E, I>,
 {
     capacity: usize,
@@ -30,7 +28,7 @@ impl<V, E> GraphBuilder<V, E> {
 
 impl<V, E, I, S> GraphBuilder<V, E, I, S>
 where
-    I: Unsigned + PrimInt,
+    I: UnsignedId,
     S: GraphEdgeStorage<E, I>,
 {
     // Transizione da Dyn a Fixed usando const generics
@@ -55,7 +53,7 @@ where
 
     pub fn change_vec_indexing<J>(self) -> GraphBuilder<V, E, J, S::Index<J>>
     where
-        J: Unsigned + PrimInt,
+        J: UnsignedId,
     {
         GraphBuilder {
             capacity: self.capacity,
@@ -78,7 +76,7 @@ where
 // Build per storage dinamico
 impl<V, E, I> GraphBuilder<V, E, I, AdjList<E, I>>
 where
-    I: Unsigned + PrimInt,
+    I: UnsignedId,
 {
     pub fn build(self) -> Graph<V, E, I, AdjList<E, I>> {
         Graph::new_with(
@@ -91,7 +89,7 @@ where
 // Build per storage fisso
 impl<V, E, I, const N: usize> GraphBuilder<V, E, I, AdjListFixed<E, I, N>>
 where
-    I: Unsigned + PrimInt,
+    I: UnsignedId,
 {
     pub fn build(self) -> Graph<V, E, I, AdjListFixed<E, I, N>> {
         Graph::new_with(

@@ -4,29 +4,22 @@ mod fixed;
 pub use adj_list::AdjList;
 pub use fixed::AdjListFixed;
 
-use num_traits::{PrimInt, Unsigned};
 use oxygraph_derive::serde_feature;
 
 use crate::{
     directionality::GraphDirectionality,
-    ids::{EdgeView, VertexId},
+    ids::{EdgeView, UnsignedId, VertexId},
 };
 
-pub trait GraphEdgeIter<E: 'static, I>
-where
-    I: Unsigned + PrimInt,
-{
+pub trait GraphEdgeIter<E: 'static, I: UnsignedId> {
     fn edges_of(&self, id: VertexId<I>) -> impl Iterator<Item = EdgeView<'_, E, I>>;
     fn edges(&self) -> impl Iterator<Item = EdgeView<'_, E, I>>;
 }
 
 #[serde_feature]
-pub trait GraphEdgeStorage<E: 'static, I>: GraphEdgeIter<E, I>
-where
-    I: Unsigned + PrimInt,
-{
+pub trait GraphEdgeStorage<E: 'static, I: UnsignedId>: GraphEdgeIter<E, I> {
     type Directionality: GraphDirectionality;
-    type Index<J: Unsigned + PrimInt>: GraphEdgeStorage<E, J>;
+    type Index<J: UnsignedId>: GraphEdgeStorage<E, J>;
 
     fn add_edge(&mut self, from: VertexId<I>, to: VertexId<I>, data: E);
     fn remove_edge(&mut self, from: VertexId<I>, to: VertexId<I>) -> Option<E>;

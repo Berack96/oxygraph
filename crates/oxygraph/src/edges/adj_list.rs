@@ -1,26 +1,22 @@
-use num_traits::{PrimInt, Unsigned};
 use oxygraph_derive::serde_feature;
 
 use crate::{
     directionality::Directed,
     edges::{GraphEdgeIter, GraphEdgeStorage},
-    ids::{EdgeView, VertexId},
+    ids::{EdgeView, UnsignedId, VertexId},
 };
 
-struct Edge<E, I>
-where
-    I: Unsigned + PrimInt,
-{
+struct Edge<E, I: UnsignedId> {
     to: VertexId<I>,
     data: E,
 }
 
 #[serde_feature]
-pub struct AdjList<E, I: Unsigned + PrimInt> {
+pub struct AdjList<E, I: UnsignedId> {
     edges: Vec<Vec<Edge<E, I>>>,
 }
 
-impl<E, I: Unsigned + PrimInt> AdjList<E, I> {
+impl<E, I: UnsignedId> AdjList<E, I> {
     pub fn new() -> Self {
         Self { edges: Vec::new() }
     }
@@ -34,10 +30,10 @@ impl<E, I: Unsigned + PrimInt> AdjList<E, I> {
 
 impl<E: 'static, I> GraphEdgeStorage<E, I> for AdjList<E, I>
 where
-    I: Unsigned + PrimInt,
+    I: UnsignedId,
 {
     type Directionality = Directed;
-    type Index<J: Unsigned + PrimInt> = AdjList<E, J>;
+    type Index<J: UnsignedId> = AdjList<E, J>;
 
     fn add_edge(&mut self, from: VertexId<I>, to: VertexId<I>, data: E) {
         let from = from.id();
@@ -60,7 +56,7 @@ where
 
 impl<E: 'static, I> GraphEdgeIter<E, I> for AdjList<E, I>
 where
-    I: Unsigned + PrimInt,
+    I: UnsignedId,
 {
     fn edges_of(&self, id: VertexId<I>) -> impl Iterator<Item = EdgeView<'_, E, I>> {
         let vert_id = id.id();

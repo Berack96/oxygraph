@@ -1,10 +1,10 @@
-use num_traits::{PrimInt, Unsigned};
-
-use crate::{directionality::GraphDirectionality, edges::GraphEdgeStorage, graph::GraphView};
+use crate::{
+    directionality::GraphDirectionality, edges::GraphEdgeStorage, graph::GraphView, ids::UnsignedId,
+};
 
 pub trait ViewVisit<'a, V: 'static, E: 'static, I, S>
 where
-    I: Unsigned + PrimInt,
+    I: UnsignedId,
     S: GraphEdgeStorage<E, I>,
 {
     type Directionality: GraphDirectionality;
