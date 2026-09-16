@@ -19,7 +19,7 @@ run = "git config --local include.path ../.gitconfig"
 [tasks."rust:clippy-editor"]
 description = "Clippy in formato JSON, per rust-analyzer.check.overrideCommand"
 hide = true
-run = "cargo clippy --all-targets --message-format=json-diagnostic-rendered-ansi"
+run = "cargo clippy --all-targets --message-format=json-diagnostic-rendered-ansi -- -D warnings"
 
 # invocato dalla CI, non pensato per l'uso manuale. fmt, clippy e test in una
 # sola invocazione di mise (un solo step nel workflow) così il toolchain viene
@@ -29,9 +29,22 @@ run = "cargo clippy --all-targets --message-format=json-diagnostic-rendered-ansi
 [tasks."rust:ci"]
 description = "Fmt, clippy e test del workspace, warning come errori"
 hide = true
-run = "cargo fmt --all -- --check && cargo clippy --profile ci --workspace --all-targets -- -D warnings && cargo nextest run --workspace --no-tests=warn --cargo-profile ci"
+run = [
+	"cargo fmt --all -- --check",
+	"cargo clippy --profile ci --workspace --all-targets -- -D warnings",
+	"cargo nextest run --workspace --no-tests=warn --cargo-profile ci",
+]
+
+[tasks."rust:fmt"]
+description = "Formatta il codice del workspace"
+run = "cargo fmt --all"
 
 [tasks."rust:test"]
 description = "Esegue la test suite del workspace con nextest"
 # --no-tests=warn: nessun crate ha ancora test, altrimenti nextest fallirebbe a vuoto
 run = "cargo nextest run --workspace --no-tests=warn"
+
+[tasks."rust:bench"]
+description = "Esegue i benchmark con Divan"
+usage = 'arg "[samples]" help="Numero di sample Divan" default="100"'
+run = "cargo bench --bench graph_bench -- --sample-count {{ usage.samples }}"

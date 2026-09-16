@@ -27,4 +27,7 @@
         "rust:clippy-editor"
     ],
     "rust-analyzer.cargo.buildScripts.enable": true,
+    "mise.configureExtensionsAutomatically": true,
+    "mise.checkForNewMiseVersion": false,
+    "mise.showNotificationIfMissingTools": false,
 }

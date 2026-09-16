@@ -7,6 +7,9 @@ edition = "2024"
 license = "AGPL-3.0-or-later"
 repository = "https://github.com/Berack96/oxygraph"
 
+[workspace.dependencies]
+oxygraph-derive = { path = "crates/oxygraph-derive" }
+
 # CI runs without incremental compilation: no cache is reused between runs, so
 # incremental only adds overhead there.
 [profile.ci]
