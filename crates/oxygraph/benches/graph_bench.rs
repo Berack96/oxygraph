@@ -1,4 +1,7 @@
-use oxygraph::{AdjList, AdjListFixed, GraphEdgeIter, GraphEdgeStorage, VertexId};
+use oxygraph::{
+    VertexId,
+    graph_edges::{AdjList, AdjListFixed, GraphEdgeStorage},
+};
 
 #[global_allocator]
 static ALLOC: divan::AllocProfiler = divan::AllocProfiler::system();
