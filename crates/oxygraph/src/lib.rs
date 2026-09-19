@@ -1,15 +1,28 @@
 //! A graph tool library for building memory efficient and fast graphs.
 
 mod builder;
-mod directionality;
 mod edges;
 mod graph;
-mod ids;
+mod vertices;
+mod views;
 mod visits;
 
 pub use builder::GraphBuilder;
-pub use directionality::{Directed, GraphDirectionality, Undirected};
-pub use edges::{AdjList, AdjListFixed, GraphEdgeIter, GraphEdgeStorage};
-pub use graph::{Graph, GraphView};
-pub use ids::{EdgeView, VertexId};
-pub use visits::{ViewVisit, VisitResult};
+pub use graph::Graph;
+pub use vertices::VertexId;
+
+pub mod graph_edges {
+    pub use super::edges::{
+        AdjList, AdjListFixed, Edge, EdgeSimple, GraphEdgeStorage, GraphEdgeStorageDirected,
+    };
+}
+
+pub mod graph_view {
+    pub use super::edges::EdgeView;
+    pub use super::graph::GraphView;
+    pub use super::views::{EdgeFilteredView, GraphFilteredView};
+}
+
+pub mod graph_visit {
+    pub use super::visits::{ViewVisit, VisitResult};
+}

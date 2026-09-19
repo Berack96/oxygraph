@@ -22,7 +22,7 @@ fn add_edges<S: GraphEdgeStorage<(), u32>>(storage: &mut S) {
     for from in 0..VERTICES {
         for offset in 0..EDGES_PER_VERTEX {
             let to = (from + offset + 1) % VERTICES;
-            storage.add_edge(VertexId::new(from), VertexId::new(to), ());
+            storage.add(VertexId::new(from), VertexId::new(to), ());
         }
     }
 }
@@ -46,7 +46,7 @@ fn adj_list_fixed_build() -> AdjListFixed<(), u32, EDGES_PER_VERTEX> {
 ))]
 fn adj_list_iterate(bencher: divan::Bencher) {
     let storage = build_adj_list();
-    bencher.bench(|| divan::black_box(storage.edges().count()));
+    bencher.bench(|| divan::black_box(storage.get_all().count()));
 }
 
 #[divan::bench(counter = divan::counter::ItemsCount::new(
@@ -54,7 +54,7 @@ fn adj_list_iterate(bencher: divan::Bencher) {
 ))]
 fn adj_list_fixed_iterate(bencher: divan::Bencher) {
     let storage = build_adj_list_fixed();
-    bencher.bench(|| divan::black_box(storage.edges().count()));
+    bencher.bench(|| divan::black_box(storage.get_all().count()));
 }
 
 fn main() {

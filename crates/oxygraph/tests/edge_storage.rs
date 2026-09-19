@@ -65,14 +65,14 @@ mod fixed_storage_tests {
         let mut storage = AdjListFixed::<String, u32, 1>::new();
         let from = VertexId::new(0);
 
-        storage.add_edge(from, VertexId::new(1), String::from("first"));
+        storage.add(from, VertexId::new(1), String::from("first"));
         assert_eq!(
-            storage.remove_edge(from, VertexId::new(1)),
+            storage.remove(from, VertexId::new(1)),
             Some(String::from("first"))
         );
-        storage.add_edge(from, VertexId::new(2), String::from("second"));
+        storage.add(from, VertexId::new(2), String::from("second"));
 
-        let edges = storage.edges_of(from).collect::<Vec<_>>();
+        let edges = storage.children_of(from).collect::<Vec<_>>();
         assert_eq!(edges.len(), 1);
         assert_eq!(edges[0].to, VertexId::new(2));
         assert_eq!(edges[0].data, "second");
@@ -84,8 +84,8 @@ mod fixed_storage_tests {
         let mut storage = AdjListFixed::<String, u32, 1>::new();
         let from = VertexId::new(0);
 
-        storage.add_edge(from, VertexId::new(1), String::from("first"));
-        storage.add_edge(from, VertexId::new(2), String::from("second"));
+        storage.add(from, VertexId::new(1), String::from("first"));
+        storage.add(from, VertexId::new(2), String::from("second"));
     }
 }
 
