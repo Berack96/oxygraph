@@ -40,16 +40,3 @@ impl<I: UnsignedId> VertexId<I> {
         I::from_nz(self.0)
     }
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[serde_feature]
-pub struct EdgeView<'a, E, I: UnsignedId> {
-    pub from: VertexId<I>,
-    pub to: VertexId<I>,
-    pub data: &'a E,
-}
-impl<'a, E, I: UnsignedId> EdgeView<'a, E, I> {
-    pub fn new(from: VertexId<I>, to: VertexId<I>, data: &'a E) -> Self {
-        Self { from, to, data }
-    }
-}

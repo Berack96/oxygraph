@@ -1,4 +1,5 @@
-use oxygraph::{EdgeView, VertexId};
+use oxygraph::VertexId;
+use oxygraph::graph_view::EdgeView;
 
 #[test]
 fn creates_vertex_ids_from_usize() {

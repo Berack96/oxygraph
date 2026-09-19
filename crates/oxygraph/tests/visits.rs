@@ -1,11 +1,15 @@
-use oxygraph::{AdjList, Directed, GraphBuilder, GraphView, ViewVisit, VisitResult};
+use oxygraph::GraphBuilder;
+use oxygraph::graph_edges::AdjList;
+use oxygraph::graph_view::GraphFilteredView;
+use oxygraph::graph_visit::{ViewVisit, VisitResult};
 
 struct NoopVisitor;
 
 impl<'a> ViewVisit<'a, String, (), u32, AdjList<(), u32>> for NoopVisitor {
-    type Directionality = Directed;
-
-    fn visit(&self, _graph: &GraphView<'a, String, (), u32, AdjList<(), u32>>) -> VisitResult {
+    fn visit(
+        &self,
+        _graph: &GraphFilteredView<'a, String, (), u32, AdjList<(), u32>>,
+    ) -> VisitResult {
         Ok(())
     }
 }
@@ -13,7 +17,7 @@ impl<'a> ViewVisit<'a, String, (), u32, AdjList<(), u32>> for NoopVisitor {
 #[test]
 fn visits_a_graph_view() {
     let graph = GraphBuilder::<String, ()>::new().build();
-    let view = GraphView::new(&graph);
+    let view = graph.get_filtered_view(None, None);
 
     assert_eq!(NoopVisitor.visit(&view), Ok(()));
 }

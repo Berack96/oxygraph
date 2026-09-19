@@ -2,7 +2,8 @@ macro_rules! storage_tests {
     ($( $module:ident => $storage:ty ),+ $(,)?) => {
         $(
             mod $module {
-                use oxygraph::{GraphEdgeIter, GraphEdgeStorage, VertexId};
+                use oxygraph::VertexId;
+                use oxygraph::graph_edges::GraphEdgeStorage;
 
                 fn storage() -> $storage {
                     <$storage>::new()
@@ -14,15 +15,15 @@ macro_rules! storage_tests {
                     let from = VertexId::new(1);
                     let to = VertexId::new(2);
 
-                    storage.add_edge(from, to, String::from("edge"));
+                    storage.add(from, to, String::from("edge"));
 
                     assert!(storage.has_edge(&from, &to));
-                    let edges = storage.edges_of(from).collect::<Vec<_>>();
+                    let edges = storage.of(from).collect::<Vec<_>>();
                     assert_eq!(edges.len(), 1);
                     assert_eq!(edges[0].from, from);
                     assert_eq!(edges[0].to, to);
                     assert_eq!(edges[0].data, "edge");
-                    assert_eq!(storage.edges().count(), 1);
+                    assert_eq!(storage.get_all().count(), 1);
                 }
 
                 #[test]
@@ -30,11 +31,11 @@ macro_rules! storage_tests {
                     let mut storage = storage();
                     let from = VertexId::new(0);
                     let to = VertexId::new(1);
-                    storage.add_edge(from, to, String::from("edge"));
+                    storage.add(from, to, String::from("edge"));
 
-                    assert_eq!(storage.remove_edge(from, to), Some(String::from("edge")));
+                    assert_eq!(storage.remove(from, to), Some(String::from("edge")));
                     assert!(!storage.has_edge(&from, &to));
-                    assert_eq!(storage.remove_edge(from, to), None);
+                    assert_eq!(storage.remove(from, to), None);
                 }
 
                 #[test]
@@ -44,7 +45,7 @@ macro_rules! storage_tests {
                     let to = VertexId::new(2);
 
                     assert!(!storage.has_edge(&from, &to));
-                    assert_eq!(storage.edges_of(from).count(), 0);
+                    assert_eq!(storage.of(from).count(), 0);
                 }
             }
         )+
@@ -52,27 +53,28 @@ macro_rules! storage_tests {
 }
 
 storage_tests! {
-    adj_list => oxygraph::AdjList<String, u32>,
-    adj_list_fixed => oxygraph::AdjListFixed<String, u32, 2>,
+    adj_list => oxygraph::graph_edges::AdjList<String, u32>,
+    adj_list_fixed => oxygraph::graph_edges::AdjListFixed<String, u32, 2>,
 }
 
 #[cfg(test)]
 mod fixed_storage_tests {
-    use oxygraph::{AdjListFixed, GraphEdgeIter, GraphEdgeStorage, VertexId};
+    use oxygraph::VertexId;
+    use oxygraph::graph_edges::{AdjListFixed, GraphEdgeStorage, GraphEdgeStorageDirected};
 
     #[test]
     fn reuses_a_slot_after_removing_an_edge() {
         let mut storage = AdjListFixed::<String, u32, 1>::new();
         let from = VertexId::new(0);
 
-        storage.add_edge(from, VertexId::new(1), String::from("first"));
+        storage.add(from, VertexId::new(1), String::from("first"));
         assert_eq!(
-            storage.remove_edge(from, VertexId::new(1)),
+            storage.remove(from, VertexId::new(1)),
             Some(String::from("first"))
         );
-        storage.add_edge(from, VertexId::new(2), String::from("second"));
+        storage.add(from, VertexId::new(2), String::from("second"));
 
-        let edges = storage.edges_of(from).collect::<Vec<_>>();
+        let edges = storage.children_of(from).collect::<Vec<_>>();
         assert_eq!(edges.len(), 1);
         assert_eq!(edges[0].to, VertexId::new(2));
         assert_eq!(edges[0].data, "second");
@@ -84,8 +86,8 @@ mod fixed_storage_tests {
         let mut storage = AdjListFixed::<String, u32, 1>::new();
         let from = VertexId::new(0);
 
-        storage.add_edge(from, VertexId::new(1), String::from("first"));
-        storage.add_edge(from, VertexId::new(2), String::from("second"));
+        storage.add(from, VertexId::new(1), String::from("first"));
+        storage.add(from, VertexId::new(2), String::from("second"));
     }
 }
 

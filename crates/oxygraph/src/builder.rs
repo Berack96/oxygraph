@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use crate::{
     edges::{AdjList, AdjListFixed, GraphEdgeStorage},
     graph::Graph,
-    ids::UnsignedId,
+    vertices::UnsignedId,
 };
 
 pub struct GraphBuilder<V: 'static, E: 'static, I = u32, S = AdjList<E, I>>
@@ -11,7 +11,7 @@ where
     I: UnsignedId,
     S: GraphEdgeStorage<E, I>,
 {
-    capacity: usize,
+    vertices: Option<Vec<V>>,
     directed: bool,
     _marker: PhantomData<(V, E, I, S)>,
 }
@@ -19,7 +19,7 @@ where
 impl<V, E> GraphBuilder<V, E> {
     pub fn new() -> Self {
         Self {
-            capacity: 1, // If zero then no allocation for vec
+            vertices: None,
             directed: false,
             _marker: PhantomData,
         }
@@ -42,7 +42,7 @@ where
         self,
     ) -> GraphBuilder<V, E, I, AdjListFixed<E, I, N>> {
         GraphBuilder {
-            capacity: self.capacity,
+            vertices: self.vertices,
             directed: self.directed,
             _marker: PhantomData,
         }
@@ -51,25 +51,14 @@ where
     // Transizione esplicita a Dynamic
     pub fn as_adjlist(self) -> GraphBuilder<V, E, I, AdjList<E, I>> {
         GraphBuilder {
-            capacity: self.capacity,
+            vertices: self.vertices,
             directed: self.directed,
             _marker: PhantomData,
         }
     }
 
-    pub fn change_vec_indexing<J>(self) -> GraphBuilder<V, E, J, S::Index<J>>
-    where
-        J: UnsignedId,
-    {
-        GraphBuilder {
-            capacity: self.capacity,
-            directed: self.directed,
-            _marker: PhantomData,
-        }
-    }
-
-    pub fn with_capacity(mut self, capacity: usize) -> Self {
-        self.capacity = if capacity == 0 { 1 } else { capacity };
+    pub fn with_vertices(mut self, vertices: Vec<V>) -> Self {
+        self.vertices = Some(vertices);
         self
     }
 
@@ -77,30 +66,10 @@ where
         self.directed = directed;
         self
     }
-}
 
-// Build per storage dinamico
-impl<V, E, I> GraphBuilder<V, E, I, AdjList<E, I>>
-where
-    I: UnsignedId,
-{
-    pub fn build(self) -> Graph<V, E, I, AdjList<E, I>> {
-        Graph::new_with(
-            Vec::with_capacity(self.capacity),
-            AdjList::with_capacity(self.capacity),
-        )
-    }
-}
-
-// Build per storage fisso
-impl<V, E, I, const N: usize> GraphBuilder<V, E, I, AdjListFixed<E, I, N>>
-where
-    I: UnsignedId,
-{
-    pub fn build(self) -> Graph<V, E, I, AdjListFixed<E, I, N>> {
-        Graph::new_with(
-            Vec::with_capacity(self.capacity),
-            AdjListFixed::with_capacity(self.capacity),
-        )
+    pub fn build(self) -> Graph<V, E, I, S> {
+        let vertices = self.vertices.unwrap_or_default();
+        let size = vertices.len();
+        Graph::new_with(vertices, S::with_capacity(size))
     }
 }

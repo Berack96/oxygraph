@@ -1,61 +1,55 @@
 #[cfg(test)]
 mod test_builder {
-    use oxygraph::GraphBuilder;
+    use oxygraph::{GraphBuilder, VertexId, graph_view::GraphView};
 
     #[test]
     fn builds_dynamic_adjacency_list_with_default_capacity() {
-        let mut graph = GraphBuilder::<String, f32>::new().build();
-
-        graph.run_with(|vertices, _| assert_eq!(vertices.capacity(), 1));
+        let graph = GraphBuilder::<String, f32>::new().build();
+        assert!(graph.len() == 0);
+        assert!(graph.is_empty());
+        assert!(graph.vertex(VertexId::new(0)).is_none());
     }
 
     #[test]
     fn keeps_requested_capacity_for_dynamic_storage() {
-        let mut graph = GraphBuilder::<String, f32>::new().with_capacity(8).build();
+        let graph = GraphBuilder::<&str, f32>::new()
+            .with_vertices(vec!["a", "b", "c", "d", "e", "f", "g", "h"])
+            .build();
 
-        graph.run_with(|vertices, _| assert_eq!(vertices.capacity(), 8));
+        assert!(graph.len() == 8);
+        assert!(!graph.is_empty());
+        assert!(graph.vertex(VertexId::new(0)).is_some());
+        assert!(graph.vertex(VertexId::new(7)).is_some());
+        assert!(graph.vertex(VertexId::new(8)).is_none());
     }
 
     #[test]
-    fn replaces_zero_capacity_with_one() {
-        let mut graph = GraphBuilder::<String, f32>::new().with_capacity(0).build();
-
-        graph.run_with(|vertices, _| assert_eq!(vertices.capacity(), 1));
+    fn keeps_zero_capacity_for_empty_vertices() {
+        let graph = GraphBuilder::<&str, f32>::new()
+            .with_vertices(vec![])
+            .build();
+        assert!(graph.len() == 0);
+        assert!(graph.is_empty());
+        assert!(graph.vertex(VertexId::new(0)).is_none());
     }
 
     #[test]
     fn builds_fixed_adjacency_list() {
-        let mut graph = GraphBuilder::<String, f32>::new()
+        let graph = GraphBuilder::<String, f32>::new()
             .directed(true)
-            .with_capacity(4)
+            .with_vertices(vec![
+                String::from("a"),
+                String::from("b"),
+                String::from("c"),
+                String::from("d"),
+            ])
             .as_adjlist_fixed_max_degree::<6>()
             .build();
 
-        graph.run_with(|vertices, _| assert_eq!(vertices.capacity(), 4));
-    }
-
-    #[test]
-    fn changes_vertex_index_type_with_dynamic_storage() {
-        let mut graph = GraphBuilder::<String, f32>::new()
-            .change_vec_indexing::<u16>()
-            .build();
-
-        let vertex_id = graph.add_vertex(String::from("vertex"));
-
-        assert_eq!(vertex_id, oxygraph::VertexId::<u16>::new(0));
-        assert_eq!(graph.get_vertex(vertex_id), Some(&String::from("vertex")));
-    }
-
-    #[test]
-    fn changes_vertex_index_type_with_fixed_storage() {
-        let mut graph = GraphBuilder::<String, f32>::new()
-            .as_adjlist_fixed_max_degree::<6>()
-            .change_vec_indexing::<u16>()
-            .build();
-
-        let vertex_id = graph.add_vertex(String::from("vertex"));
-
-        assert_eq!(vertex_id, oxygraph::VertexId::<u16>::new(0));
-        assert_eq!(graph.get_vertex(vertex_id), Some(&String::from("vertex")));
+        assert!(graph.len() == 4);
+        assert!(!graph.is_empty());
+        assert!(graph.vertex(VertexId::new(0)).is_some());
+        assert!(graph.vertex(VertexId::new(3)).is_some());
+        assert!(graph.vertex(VertexId::new(4)).is_none());
     }
 }

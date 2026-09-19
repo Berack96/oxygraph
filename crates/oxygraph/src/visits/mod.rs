@@ -1,17 +1,11 @@
-use crate::{
-    directionality::GraphDirectionality, edges::GraphEdgeStorage, graph::GraphView, ids::UnsignedId,
-};
+use crate::{edges::GraphEdgeStorage, vertices::UnsignedId, views::GraphFilteredView};
 
 pub trait ViewVisit<'a, V: 'static, E: 'static, I, S>
 where
     I: UnsignedId,
     S: GraphEdgeStorage<E, I>,
 {
-    type Directionality: GraphDirectionality;
-
-    fn visit(&self, graph: &GraphView<'a, V, E, I, S>) -> VisitResult
-    where
-        S: GraphEdgeStorage<E, I, Directionality = Self::Directionality>;
+    fn visit(&self, graph: &GraphFilteredView<'a, V, E, I, S>) -> VisitResult;
 }
 
 pub type VisitResult = Result<(), String>;
