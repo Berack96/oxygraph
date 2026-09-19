@@ -1,3 +1,4 @@
+use oxygraph::graph_view::GraphView;
 use oxygraph::{GraphBuilder, VertexId};
 
 #[test]
@@ -9,15 +10,15 @@ fn adds_and_reads_vertices() {
 
     assert_eq!(first, VertexId::new(0));
     assert_eq!(second, VertexId::new(1));
-    assert_eq!(graph.get_vertex(first), Some(&String::from("first")));
-    assert_eq!(graph.get_vertex(second), Some(&String::from("second")));
+    assert_eq!(graph.vertex(first), Some(&String::from("first")));
+    assert_eq!(graph.vertex(second), Some(&String::from("second")));
 }
 
 #[test]
 fn returns_none_for_unknown_vertex() {
     let graph = GraphBuilder::<String, ()>::new().build();
 
-    assert_eq!(graph.get_vertex(VertexId::new(0)), None);
+    assert_eq!(graph.vertex(VertexId::new(0)), None);
 }
 
 #[test]
@@ -28,5 +29,5 @@ fn supports_fixed_storage() {
 
     let vertex = graph.add_vertex(String::from("fixed"));
 
-    assert_eq!(graph.get_vertex(vertex), Some(&String::from("fixed")));
+    assert_eq!(graph.vertex(vertex), Some(&String::from("fixed")));
 }
