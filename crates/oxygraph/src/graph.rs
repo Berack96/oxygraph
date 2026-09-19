@@ -53,11 +53,8 @@ where
         &mut self.edge_storage
     }
 
-    pub fn run_with<F, R>(&mut self, f: F) -> R
-    where
-        F: FnOnce(&mut Vec<V>, &mut S) -> R,
-    {
-        f(&mut self.vertices, &mut self.edge_storage)
+    pub fn get_view(&self) -> GraphFilteredView<'_, V, E, I, S> {
+        self.get_filtered_view(None, None)
     }
 
     pub fn get_filtered_view(
