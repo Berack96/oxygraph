@@ -21,13 +21,8 @@ description = "Clippy in JSON format, for rust-analyzer.check.overrideCommand"
 hide = true
 run = "cargo clippy --all-targets --message-format=json-diagnostic-rendered-ansi -- -D warnings"
 
-# invoked by CI, not meant for manual use. fmt, clippy and test in a single
-# mise invocation (one step in the workflow) so the toolchain is resolved
-# once instead of being repeated at every step; every cargo step uses the
-# same cargo "ci" profile to share the target dir and avoid recompiling the
-# crates twice. clippy and test each run twice, once with default features
-# and once with --all-features, so feature-gated code (e.g. serde) is
-# actually covered instead of silently going unchecked.
+# invoked by CI, not meant for manual use: single mise call sharing one
+# "ci" cargo profile; clippy/tests run twice, default features and --all-features.
 [tasks."rust:ci"]
 description = "Fmt, clippy and test for the workspace, warnings as errors"
 hide = true
