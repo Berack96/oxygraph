@@ -21,11 +21,14 @@ pub type DijkstraReaching<I> = Vec<(VertexId<I>, DijkstraReached<I>)>;
 
 struct HeapEntry<I: UnsignedId> {
     distance: f64,
+    // Secondary key, breaking distance ties by push order: BinaryHeap's pop order among
+    // equal-priority entries is otherwise unspecified.
+    sequence: u64,
     vertex: VertexId<I>,
 }
 impl<I: UnsignedId> PartialEq for HeapEntry<I> {
     fn eq(&self, other: &Self) -> bool {
-        self.distance == other.distance
+        self.distance == other.distance && self.sequence == other.sequence
     }
 }
 impl<I: UnsignedId> Eq for HeapEntry<I> {}
@@ -36,11 +39,12 @@ impl<I: UnsignedId> PartialOrd for HeapEntry<I> {
 }
 impl<I: UnsignedId> Ord for HeapEntry<I> {
     fn cmp(&self, other: &Self) -> Ordering {
-        // Reversed: BinaryHeap is a max-heap, Dijkstra needs the smallest distance first.
+        // Reversed: BinaryHeap is a max-heap, Dijkstra needs the smallest (distance, sequence) first.
         other
             .distance
             .partial_cmp(&self.distance)
             .unwrap_or(Ordering::Equal)
+            .then_with(|| other.sequence.cmp(&self.sequence))
     }
 }
 
@@ -63,6 +67,7 @@ impl MultiSourceDijkstra {
     {
         let mut marks: VertexMarks<Option<DijkstraReached<S::Id>>> = VertexMarks::new(None);
         let mut heap = BinaryHeap::new();
+        let mut next_sequence = 0u64;
 
         for source in sources {
             if view.vertex(source).is_none() {
@@ -80,12 +85,17 @@ impl MultiSourceDijkstra {
             );
             heap.push(HeapEntry {
                 distance: 0.0,
+                sequence: next_sequence,
                 vertex: source,
             });
+            next_sequence += 1;
         }
 
         let mut order = Vec::new();
-        while let Some(HeapEntry { distance, vertex }) = heap.pop() {
+        while let Some(HeapEntry {
+            distance, vertex, ..
+        }) = heap.pop()
+        {
             let current = marks
                 .get(vertex)
                 .expect("queued vertices are always marked");
@@ -111,8 +121,10 @@ impl MultiSourceDijkstra {
                     );
                     heap.push(HeapEntry {
                         distance: next_distance,
+                        sequence: next_sequence,
                         vertex: edge.to,
                     });
+                    next_sequence += 1;
                 }
             }
         }

@@ -446,3 +446,100 @@ fn articulation_points_finds_the_shared_vertex_of_a_bowtie() {
     assert_eq!(Bridges.visit(&graph), Vec::new());
     assert_eq!(ArticulationPoints.visit(&graph), vec![m]);
 }
+
+#[test]
+fn bridges_and_articulation_points_ignore_a_self_loop() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge(a, b, ());
+    graph.edges_mut().add_edge(b, c, ());
+    graph.edges_mut().add_edge(c, a, ());
+    graph.edges_mut().add_edge(a, a, ());
+
+    assert_eq!(Bridges.visit(&graph), Vec::new());
+    assert_eq!(ArticulationPoints.visit(&graph), Vec::new());
+}
+
+#[test]
+fn bridges_and_articulation_points_of_an_empty_graph_are_empty() {
+    let graph = GraphBuilder::<&str, ()>::new().build();
+
+    assert_eq!(Bridges.visit(&graph), Vec::new());
+    assert_eq!(ArticulationPoints.visit(&graph), Vec::new());
+}
+
+#[test]
+fn connected_components_only_follows_outgoing_edges_on_a_one_way_graph() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    graph.edges_mut().add_edge_directed(b, a, ()); // b -> a, one-way
+
+    let components = ConnectedComponents.visit(&graph);
+
+    // a has no outgoing edge, so it's claimed as its own component before b's outgoing edge
+    // to a can merge them: the documented one-way caveat, not a real pair of islands.
+    assert_eq!(components, vec![vec![a], vec![b]]);
+}
+
+#[test]
+fn multi_source_bfs_ignores_duplicate_sources() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    graph.edges_mut().add_edge(a, b, ());
+
+    let reached = MultiSourceBfs.visit(&graph, [a, a]).unwrap();
+
+    assert_eq!(
+        reached,
+        vec![
+            (
+                a,
+                Reached {
+                    distance: 0,
+                    source: a
+                }
+            ),
+            (
+                b,
+                Reached {
+                    distance: 1,
+                    source: a
+                }
+            )
+        ]
+    );
+}
+
+#[test]
+fn multi_source_dijkstra_ignores_duplicate_sources() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    graph.edges_mut().add_edge_directed(a, b, Km(1.0));
+
+    let reached = MultiSourceDijkstra.visit(&graph, [a, a]).unwrap();
+
+    assert_eq!(
+        reached,
+        vec![
+            (
+                a,
+                DijkstraReached {
+                    distance: 0.0,
+                    source: a
+                }
+            ),
+            (
+                b,
+                DijkstraReached {
+                    distance: 1.0,
+                    source: a
+                }
+            )
+        ]
+    );
+}
