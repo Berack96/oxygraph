@@ -8,12 +8,14 @@
 //! [`parents_of`](crate::edges::GraphEdgeStorageDirected::parents_of)).
 
 mod bfs;
+mod connected_components;
 mod dfs;
 mod dijkstra;
 mod multi_source_bfs;
 mod multi_source_dijkstra;
 
 pub use bfs::Bfs;
+pub use connected_components::{Components, ConnectedComponents};
 pub use dfs::Dfs;
 pub use dijkstra::Dijkstra;
 pub use multi_source_bfs::{MultiSourceBfs, Reached, Reaching};

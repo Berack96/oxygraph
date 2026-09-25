@@ -2,8 +2,8 @@ use oxygraph::GraphBuilder;
 use oxygraph::graph_edges::{AdjList, GraphEdgeStorage, GraphEdgeStorageDirected, Weighted};
 use oxygraph::graph_view::GraphView;
 use oxygraph::graph_visit::{
-    Bfs, Dfs, Dijkstra, DijkstraReached, MultiSourceBfs, MultiSourceDijkstra, Reached, ViewVisit,
-    VisitError,
+    Bfs, ConnectedComponents, Dfs, Dijkstra, DijkstraReached, MultiSourceBfs, MultiSourceDijkstra,
+    Reached, ViewVisit, VisitError,
 };
 
 struct NoopVisitor;
@@ -305,4 +305,29 @@ fn multi_source_dijkstra_reports_missing_source_vertex() {
         MultiSourceDijkstra.visit(&graph, [a, missing]),
         Err(VisitError::VertexNotFound)
     );
+}
+
+#[test]
+fn connected_components_groups_vertices_reachable_from_one_another() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    let e = graph.add_vertex("e");
+    let f = graph.add_vertex("f");
+    graph.edges_mut().add_edge(a, b, ());
+    graph.edges_mut().add_edge(b, c, ());
+    graph.edges_mut().add_edge(d, e, ());
+
+    let components = ConnectedComponents.visit(&graph);
+
+    assert_eq!(components, vec![vec![a, b, c], vec![d, e], vec![f]]);
+}
+
+#[test]
+fn connected_components_of_an_empty_graph_is_empty() {
+    let graph = GraphBuilder::<&str, ()>::new().build();
+
+    assert_eq!(ConnectedComponents.visit(&graph), Vec::<Vec<_>>::new());
 }
