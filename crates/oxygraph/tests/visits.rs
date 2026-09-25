@@ -2,9 +2,10 @@ use oxygraph::GraphBuilder;
 use oxygraph::graph_edges::{AdjList, GraphEdgeStorage, GraphEdgeStorageDirected, Weighted};
 use oxygraph::graph_view::GraphView;
 use oxygraph::graph_visit::{
-    ArticulationPoints, Bfs, BiconnectedComponents, Bridges, ConnectedComponents, CycleDetection,
-    Dfs, Dijkstra, DijkstraReached, MinimumSpanningTree, MultiSourceBfs, MultiSourceDijkstra,
-    Reached, StronglyConnectedComponents, TopologicalSort, ViewVisit, VisitError,
+    ArticulationPoints, BellmanFord, Bfs, BiconnectedComponents, Bridges, ConnectedComponents,
+    CycleDetection, Dfs, Dijkstra, DijkstraReached, MinimumSpanningTree, MultiSourceBfs,
+    MultiSourceDijkstra, Reached, StronglyConnectedComponents, TopologicalSort, ViewVisit,
+    VisitError,
 };
 
 struct NoopVisitor;
@@ -606,6 +607,35 @@ fn cycle_detection_returns_none_on_a_dag() {
     graph.edges_mut().add_edge_directed(b, c, ());
 
     assert_eq!(CycleDetection.visit(&graph), None);
+}
+
+#[test]
+fn bellman_ford_finds_shortest_path_with_a_negative_edge() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge_directed(a, b, Km(5.0));
+    graph.edges_mut().add_edge_directed(a, c, Km(2.0));
+    graph.edges_mut().add_edge_directed(c, b, Km(-4.0));
+
+    let (path, total) = BellmanFord::new(b).visit(&graph, a).unwrap().unwrap();
+    assert_eq!(path, vec![a, c, b]);
+    assert_eq!(total, -2.0);
+}
+
+#[test]
+fn bellman_ford_reports_a_reachable_negative_cycle() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    graph.edges_mut().add_edge_directed(a, b, Km(1.0));
+    graph.edges_mut().add_edge_directed(b, a, Km(-3.0));
+
+    assert_eq!(
+        BellmanFord::new(b).visit(&graph, a),
+        Err(VisitError::NegativeCycle)
+    );
 }
 
 #[test]
