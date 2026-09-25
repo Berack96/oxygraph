@@ -15,6 +15,7 @@ mod dijkstra;
 mod multi_source_bfs;
 mod multi_source_dijkstra;
 mod scc;
+mod topological_sort;
 
 pub use bfs::Bfs;
 pub use bridges::{ArticulationPoints, BridgeEdges, Bridges};
@@ -24,6 +25,7 @@ pub use dijkstra::Dijkstra;
 pub use multi_source_bfs::{MultiSourceBfs, Reached, Reaching};
 pub use multi_source_dijkstra::{DijkstraReached, DijkstraReaching, MultiSourceDijkstra};
 pub use scc::{SccComponents, StronglyConnectedComponents};
+pub use topological_sort::TopologicalSort;
 
 use crate::{
     edges::GraphEdgeStorage,

@@ -3,8 +3,8 @@ use oxygraph::graph_edges::{AdjList, GraphEdgeStorage, GraphEdgeStorageDirected,
 use oxygraph::graph_view::GraphView;
 use oxygraph::graph_visit::{
     ArticulationPoints, Bfs, Bridges, ConnectedComponents, Dfs, Dijkstra, DijkstraReached,
-    MultiSourceBfs, MultiSourceDijkstra, Reached, StronglyConnectedComponents, ViewVisit,
-    VisitError,
+    MultiSourceBfs, MultiSourceDijkstra, Reached, StronglyConnectedComponents, TopologicalSort,
+    ViewVisit, VisitError,
 };
 
 struct NoopVisitor;
@@ -512,6 +512,34 @@ fn multi_source_bfs_ignores_duplicate_sources() {
             )
         ]
     );
+}
+
+#[test]
+fn topological_sort_orders_dependencies_before_dependents() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(a, c, ());
+    graph.edges_mut().add_edge_directed(b, c, ());
+
+    let order = TopologicalSort.visit(&graph).unwrap();
+
+    let position = |v| order.iter().position(|&id| id == v).unwrap();
+    assert!(position(a) < position(b));
+    assert!(position(b) < position(c));
+}
+
+#[test]
+fn topological_sort_returns_none_on_a_cycle() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(b, a, ());
+
+    assert_eq!(TopologicalSort.visit(&graph), None);
 }
 
 #[test]
