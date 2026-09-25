@@ -75,6 +75,19 @@ macro_rules! storage_tests {
                 }
 
                 #[test]
+                fn add_edge_keeps_lower_indexed_rows_when_growing_from_a_higher_vertex() {
+                    let mut storage = storage();
+                    let a = VertexId::new(2);
+                    let b = VertexId::new(0);
+
+                    storage.add_edge(a, b, String::from("edge"));
+
+                    assert!(storage.has_edge(&a, &b));
+                    assert!(storage.has_edge(&b, &a));
+                    assert_eq!(storage.get_all().count(), 2);
+                }
+
+                #[test]
                 fn remove_edge_clears_both_directions() {
                     let mut storage = storage();
                     let a = VertexId::new(0);

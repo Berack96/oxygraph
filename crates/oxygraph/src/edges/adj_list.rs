@@ -148,7 +148,9 @@ impl<E: 'static + MaybeSerde, I: UnsignedId + MaybeSerde> GraphEdgeStorageDirect
 
     fn add_edge_directed(&mut self, from: VertexId<I>, to: VertexId<I>, data: E) {
         let from = from.id();
-        self.edges.resize_with(from + 1, Vec::new);
+        if from + 1 > self.edges.len() {
+            self.edges.resize_with(from + 1, Vec::new);
+        }
         self.edges[from].push(EdgeSimple { to, data });
         self.edge_count += 1;
     }

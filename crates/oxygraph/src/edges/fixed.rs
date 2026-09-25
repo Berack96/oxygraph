@@ -161,8 +161,10 @@ impl<E: 'static + MaybeSerde, I: UnsignedId + MaybeSerde, const N: usize> GraphE
 
     fn add_edge_directed(&mut self, from: VertexId<I>, to: VertexId<I>, data: E) {
         let from = from.id();
-        self.edges
-            .resize_with(from + 1, || std::array::from_fn(|_| None));
+        if from + 1 > self.edges.len() {
+            self.edges
+                .resize_with(from + 1, || std::array::from_fn(|_| None));
+        }
         let edge = self.edges[from]
             .iter_mut()
             .find(|edge| edge.is_none())
