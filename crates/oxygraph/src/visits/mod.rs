@@ -42,7 +42,14 @@ pub enum VisitError {
     VertexNotFound,
 }
 
-/// Sparse, per-vertex marking storage shared by visits, backed by a growable array.
+/// Visited/unvisited marker shared by the visits that don't need extra per-vertex data.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Mark {
+    Unvisited,
+    Visited,
+}
+
+/// Per-vertex marking storage shared by visits, backed by a densely-indexed growable array.
 /// Each visit picks its own mark type `M` (a visited/unvisited enum, a distance, ...).
 pub struct VertexMarks<M> {
     marks: Vec<M>,

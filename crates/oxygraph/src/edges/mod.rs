@@ -9,6 +9,7 @@ use oxygraph_derive::serde_feature;
 use crate::vertices::{UnsignedId, VertexId};
 
 /// Edge data usable as a Dijkstra edge weight.
+/// `weight` must be non-negative: `Dijkstra` does not terminate on negative-weight cycles.
 pub trait Weighted {
     fn weight(&self) -> f64;
 }

@@ -5,16 +5,11 @@ use crate::{
     edges::GraphEdgeStorageDirected,
     graph::GraphView,
     vertices::{UnsignedId, VertexId},
-    visits::{VertexMarks, ViewVisit, VisitError, VisitResult},
+    visits::{Mark, VertexMarks, ViewVisit, VisitError, VisitResult},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Mark {
-    Unvisited,
-    Visited,
-}
-
 /// Depth-first traversal from a start vertex, returning the vertices in visit order.
+#[derive(Debug, Clone, Copy)]
 pub struct Dfs;
 
 impl<V: 'static, E: 'static, I, S> ViewVisit<V, E, I, S> for Dfs

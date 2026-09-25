@@ -42,6 +42,7 @@ impl<I: UnsignedId> Ord for HeapEntry<I> {
 }
 
 /// Shortest path from a start vertex to `target`: the vertex sequence and its total weight.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Dijkstra<I: UnsignedId> {
     pub target: VertexId<I>,
 }
