@@ -13,8 +13,8 @@ pub use vertices::VertexId;
 
 pub mod graph_edges {
     pub use super::edges::{
-        AdjList, AdjListFixed, Edge, EdgeSimple, GraphEdgeStorage, GraphEdgeStorageDirected,
-        Weighted,
+        AdjCsr, AdjList, AdjListFixed, AdjMatrix, Edge, EdgeSimple, GraphEdgeStorage,
+        GraphEdgeStorageDirected, Weighted,
     };
 }
 

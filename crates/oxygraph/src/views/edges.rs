@@ -55,11 +55,14 @@ impl<'a, S: GraphEdgeStorage> GraphEdgeStorage for EdgeFilteredView<'a, S> {
             .count()
     }
 
-    fn add(&mut self, _from: VertexId<S::Id>, _to: VertexId<S::Id>, _data: S::Edge) {
+    fn add_edge(&mut self, _from: VertexId<S::Id>, _to: VertexId<S::Id>, _data: S::Edge)
+    where
+        S::Edge: Clone,
+    {
         panic!("EdgeFilteredView cannot add edges");
     }
 
-    fn remove(&mut self, _from: VertexId<S::Id>, _to: VertexId<S::Id>) -> Option<S::Edge> {
+    fn remove_edge(&mut self, _from: VertexId<S::Id>, _to: VertexId<S::Id>) -> Option<S::Edge> {
         panic!("EdgeFilteredView cannot remove edges");
     }
 
@@ -117,5 +120,17 @@ impl<'a, S: GraphEdgeStorageDirected> GraphEdgeStorageDirected for EdgeFilteredV
             .children_of(id)
             .filter(|edge| self.filter_edges.is_none_or(|filter| filter(edge.data)))
             .count()
+    }
+
+    fn add_edge_directed(&mut self, _from: VertexId<S::Id>, _to: VertexId<S::Id>, _data: S::Edge) {
+        panic!("EdgeFilteredView cannot add edges");
+    }
+
+    fn remove_edge_directed(
+        &mut self,
+        _from: VertexId<S::Id>,
+        _to: VertexId<S::Id>,
+    ) -> Option<S::Edge> {
+        panic!("EdgeFilteredView cannot remove edges");
     }
 }

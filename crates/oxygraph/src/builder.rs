@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::{
-    edges::{AdjList, AdjListFixed, GraphEdgeStorage, MaybeSerde},
+    edges::{AdjCsr, AdjList, AdjListFixed, AdjMatrix, GraphEdgeStorage, MaybeSerde},
     graph::Graph,
     vertices::UnsignedId,
 };
@@ -52,6 +52,22 @@ where
 
     // Switch explicitly back to the dynamic adjacency list.
     pub fn as_adjlist(self) -> GraphBuilder<V, E, I, AdjList<E, I>> {
+        GraphBuilder {
+            vertices: self.vertices,
+            _marker: PhantomData,
+        }
+    }
+
+    // Switch to the compressed sparse row storage.
+    pub fn as_csr(self) -> GraphBuilder<V, E, I, AdjCsr<E, I>> {
+        GraphBuilder {
+            vertices: self.vertices,
+            _marker: PhantomData,
+        }
+    }
+
+    // Switch to the dense adjacency matrix storage.
+    pub fn as_matrix(self) -> GraphBuilder<V, E, I, AdjMatrix<E, I>> {
         GraphBuilder {
             vertices: self.vertices,
             _marker: PhantomData,
