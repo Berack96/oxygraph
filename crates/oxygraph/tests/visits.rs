@@ -1,7 +1,7 @@
 use oxygraph::GraphBuilder;
-use oxygraph::graph_edges::{AdjList, GraphEdgeStorageDirected, Weighted};
+use oxygraph::graph_edges::{AdjList, GraphEdgeStorage, GraphEdgeStorageDirected, Weighted};
 use oxygraph::graph_view::GraphView;
-use oxygraph::graph_visit::{Bfs, Dfs, Dijkstra, ViewVisit, VisitError};
+use oxygraph::graph_visit::{Bfs, Dfs, Dijkstra, MultiSourceBfs, Reached, ViewVisit, VisitError};
 
 struct NoopVisitor;
 
@@ -146,6 +146,82 @@ fn dijkstra_reports_missing_target_vertex() {
 
     assert_eq!(
         Dijkstra::new(missing).visit(&graph, a),
+        Err(VisitError::VertexNotFound)
+    );
+}
+
+#[test]
+fn multi_source_bfs_attributes_each_vertex_to_the_nearest_source() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let s1 = graph.add_vertex("s1");
+    let x = graph.add_vertex("x");
+    let s2 = graph.add_vertex("s2");
+    let far = graph.add_vertex("far");
+    graph.edges_mut().add_edge(s1, x, ());
+    graph.edges_mut().add_edge(s2, x, ());
+    graph.edges_mut().add_edge(s2, far, ());
+
+    let reached = MultiSourceBfs.visit(&graph, [s1, s2]).unwrap();
+    let of = |v| reached.iter().find(|(id, _)| *id == v).map(|(_, r)| *r);
+
+    assert_eq!(
+        of(s1),
+        Some(Reached {
+            distance: 0,
+            source: s1
+        })
+    );
+    assert_eq!(
+        of(s2),
+        Some(Reached {
+            distance: 0,
+            source: s2
+        })
+    );
+    // x is equidistant from s1 and s2: ties are broken by input order, s1 first.
+    assert_eq!(
+        of(x),
+        Some(Reached {
+            distance: 1,
+            source: s1
+        })
+    );
+    assert_eq!(
+        of(far),
+        Some(Reached {
+            distance: 1,
+            source: s2
+        })
+    );
+}
+
+#[test]
+fn multi_source_bfs_omits_unreached_vertices() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let _isolated = graph.add_vertex("isolated");
+
+    let reached = MultiSourceBfs.visit(&graph, [a]).unwrap();
+    assert_eq!(
+        reached,
+        vec![(
+            a,
+            Reached {
+                distance: 0,
+                source: a
+            }
+        )]
+    );
+}
+
+#[test]
+fn multi_source_bfs_reports_missing_source_vertex() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let missing = oxygraph::VertexId::new(5);
+
+    assert_eq!(
+        MultiSourceBfs.visit(&graph, [a, missing]),
         Err(VisitError::VertexNotFound)
     );
 }

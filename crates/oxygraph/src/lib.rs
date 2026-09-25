@@ -25,5 +25,7 @@ pub mod graph_view {
 }
 
 pub mod graph_visit {
-    pub use super::visits::{Bfs, Dfs, Dijkstra, ViewVisit, VisitError, VisitResult};
+    pub use super::visits::{
+        Bfs, Dfs, Dijkstra, MultiSourceBfs, Reached, Reaching, ViewVisit, VisitError, VisitResult,
+    };
 }

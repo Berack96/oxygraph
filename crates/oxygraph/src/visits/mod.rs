@@ -10,10 +10,12 @@
 mod bfs;
 mod dfs;
 mod dijkstra;
+mod multi_source_bfs;
 
 pub use bfs::Bfs;
 pub use dfs::Dfs;
 pub use dijkstra::Dijkstra;
+pub use multi_source_bfs::{MultiSourceBfs, Reached, Reaching};
 
 use crate::{
     edges::GraphEdgeStorage,
