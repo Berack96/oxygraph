@@ -22,6 +22,7 @@ mod multi_source_dijkstra;
 mod scc;
 mod simple_paths;
 mod topological_sort;
+mod transitive_closure;
 
 pub use astar::AStar;
 pub use bellman_ford::BellmanFord;
@@ -38,6 +39,7 @@ pub use multi_source_dijkstra::{DijkstraReached, DijkstraReaching, MultiSourceDi
 pub use scc::{SccComponents, StronglyConnectedComponents};
 pub use simple_paths::AllSimplePaths;
 pub use topological_sort::TopologicalSort;
+pub use transitive_closure::{Reachability, TransitiveClosure};
 
 use crate::{
     edges::GraphEdgeStorage,

@@ -5,7 +5,7 @@ use oxygraph::graph_visit::{
     AStar, AllSimplePaths, ArticulationPoints, BellmanFord, Bfs, BiconnectedComponents, Bridges,
     ConnectedComponents, CycleDetection, Dfs, Dijkstra, DijkstraReached, MinimumSpanningTree,
     MultiSourceBfs, MultiSourceDijkstra, Reached, StronglyConnectedComponents, TopologicalSort,
-    ViewVisit, VisitError,
+    TransitiveClosure, ViewVisit, VisitError,
 };
 
 struct NoopVisitor;
@@ -607,6 +607,52 @@ fn cycle_detection_returns_none_on_a_dag() {
     graph.edges_mut().add_edge_directed(b, c, ());
 
     assert_eq!(CycleDetection.visit(&graph), None);
+}
+
+#[test]
+fn transitive_closure_finds_everything_reachable_from_each_vertex() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(b, c, ());
+    graph.edges_mut().add_edge_directed(a, d, ());
+
+    let closure = TransitiveClosure.visit(&graph);
+    let reachable_from = |v| {
+        closure
+            .iter()
+            .find(|(id, _)| *id == v)
+            .map(|(_, r)| r.clone())
+            .unwrap()
+    };
+
+    let from_a = reachable_from(a);
+    assert_eq!(from_a.len(), 3);
+    assert!(from_a.contains(&b) && from_a.contains(&c) && from_a.contains(&d));
+    assert_eq!(reachable_from(b), vec![c]);
+    assert_eq!(reachable_from(c), Vec::<_>::new());
+    assert_eq!(reachable_from(d), Vec::<_>::new());
+}
+
+#[test]
+fn transitive_closure_includes_self_when_on_a_cycle() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(b, a, ());
+
+    let closure = TransitiveClosure.visit(&graph);
+    let from_a = closure
+        .iter()
+        .find(|(id, _)| *id == a)
+        .map(|(_, r)| r.clone())
+        .unwrap();
+
+    assert!(from_a.contains(&a) && from_a.contains(&b));
 }
 
 #[test]
