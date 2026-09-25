@@ -8,6 +8,11 @@ use oxygraph_derive::serde_feature;
 
 use crate::vertices::{UnsignedId, VertexId};
 
+/// Edge data usable as a Dijkstra edge weight.
+pub trait Weighted {
+    fn weight(&self) -> f64;
+}
+
 #[serde_feature]
 pub trait GraphEdgeStorage<E: 'static, I: UnsignedId> {
     fn with_capacity(capacity: usize) -> Self;
