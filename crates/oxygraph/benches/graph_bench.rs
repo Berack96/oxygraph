@@ -1,6 +1,6 @@
 use oxygraph::{
     VertexId,
-    graph_edges::{AdjList, AdjListFixed, GraphEdgeStorage},
+    graph_edges::{AdjList, AdjListFixed, GraphEdgeStorage, GraphEdgeStorageDirected},
 };
 
 #[global_allocator]
@@ -21,11 +21,11 @@ fn build_adj_list_fixed() -> AdjListFixed<(), u32, EDGES_PER_VERTEX> {
     storage
 }
 
-fn add_edges<S: GraphEdgeStorage<Edge = (), Id = u32>>(storage: &mut S) {
+fn add_edges<S: GraphEdgeStorageDirected<Edge = (), Id = u32>>(storage: &mut S) {
     for from in 0..VERTICES {
         for offset in 0..EDGES_PER_VERTEX {
             let to = (from + offset + 1) % VERTICES;
-            storage.add(VertexId::new(from), VertexId::new(to), ());
+            storage.add_edge_directed(VertexId::new(from), VertexId::new(to), ());
         }
     }
 }

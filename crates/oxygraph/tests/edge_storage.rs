@@ -3,7 +3,7 @@ macro_rules! storage_tests {
         $(
             mod $module {
                 use oxygraph::VertexId;
-                use oxygraph::graph_edges::GraphEdgeStorage;
+                use oxygraph::graph_edges::{GraphEdgeStorage, GraphEdgeStorageDirected};
 
                 fn storage() -> $storage {
                     <$storage>::new()
@@ -15,7 +15,7 @@ macro_rules! storage_tests {
                     let from = VertexId::new(1);
                     let to = VertexId::new(2);
 
-                    storage.add(from, to, String::from("edge"));
+                    storage.add_edge_directed(from, to, String::from("edge"));
 
                     assert!(storage.has_edge(&from, &to));
                     let edges = storage.of(from).collect::<Vec<_>>();
@@ -31,11 +31,14 @@ macro_rules! storage_tests {
                     let mut storage = storage();
                     let from = VertexId::new(0);
                     let to = VertexId::new(1);
-                    storage.add(from, to, String::from("edge"));
+                    storage.add_edge_directed(from, to, String::from("edge"));
 
-                    assert_eq!(storage.remove(from, to), Some(String::from("edge")));
+                    assert_eq!(
+                        storage.remove_edge_directed(from, to),
+                        Some(String::from("edge"))
+                    );
                     assert!(!storage.has_edge(&from, &to));
-                    assert_eq!(storage.remove(from, to), None);
+                    assert_eq!(storage.remove_edge_directed(from, to), None);
                 }
 
                 #[test]
@@ -46,6 +49,41 @@ macro_rules! storage_tests {
 
                     assert!(!storage.has_edge(&from, &to));
                     assert_eq!(storage.of(from).count(), 0);
+                }
+
+                #[test]
+                fn add_edge_is_undirected() {
+                    let mut storage = storage();
+                    let a = VertexId::new(0);
+                    let b = VertexId::new(1);
+
+                    storage.add_edge(a, b, String::from("edge"));
+
+                    assert!(storage.has_edge(&a, &b));
+                    assert!(storage.has_edge(&b, &a));
+                    assert_eq!(storage.get_all().count(), 2);
+                }
+
+                #[test]
+                fn add_edge_self_loop_is_not_duplicated() {
+                    let mut storage = storage();
+                    let a = VertexId::new(0);
+
+                    storage.add_edge(a, a, String::from("loop"));
+
+                    assert_eq!(storage.get_all().count(), 1);
+                }
+
+                #[test]
+                fn remove_edge_clears_both_directions() {
+                    let mut storage = storage();
+                    let a = VertexId::new(0);
+                    let b = VertexId::new(1);
+                    storage.add_edge(a, b, String::from("edge"));
+
+                    assert_eq!(storage.remove_edge(a, b), Some(String::from("edge")));
+                    assert!(!storage.has_edge(&a, &b));
+                    assert!(!storage.has_edge(&b, &a));
                 }
             }
         )+
@@ -60,19 +98,19 @@ storage_tests! {
 #[cfg(test)]
 mod fixed_storage_tests {
     use oxygraph::VertexId;
-    use oxygraph::graph_edges::{AdjListFixed, GraphEdgeStorage, GraphEdgeStorageDirected};
+    use oxygraph::graph_edges::{AdjListFixed, GraphEdgeStorageDirected};
 
     #[test]
     fn reuses_a_slot_after_removing_an_edge() {
         let mut storage = AdjListFixed::<String, u32, 1>::new();
         let from = VertexId::new(0);
 
-        storage.add(from, VertexId::new(1), String::from("first"));
+        storage.add_edge_directed(from, VertexId::new(1), String::from("first"));
         assert_eq!(
-            storage.remove(from, VertexId::new(1)),
+            storage.remove_edge_directed(from, VertexId::new(1)),
             Some(String::from("first"))
         );
-        storage.add(from, VertexId::new(2), String::from("second"));
+        storage.add_edge_directed(from, VertexId::new(2), String::from("second"));
 
         let edges = storage.children_of(from).collect::<Vec<_>>();
         assert_eq!(edges.len(), 1);
@@ -86,8 +124,8 @@ mod fixed_storage_tests {
         let mut storage = AdjListFixed::<String, u32, 1>::new();
         let from = VertexId::new(0);
 
-        storage.add(from, VertexId::new(1), String::from("first"));
-        storage.add(from, VertexId::new(2), String::from("second"));
+        storage.add_edge_directed(from, VertexId::new(1), String::from("first"));
+        storage.add_edge_directed(from, VertexId::new(2), String::from("second"));
     }
 }
 

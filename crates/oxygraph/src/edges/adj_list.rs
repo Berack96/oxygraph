@@ -8,16 +8,21 @@ use crate::{
 #[serde_feature]
 pub struct AdjList<E: 'static, I: UnsignedId> {
     edges: Vec<Vec<EdgeSimple<E, I>>>,
+    edge_count: usize,
 }
 
 impl<E: 'static, I: UnsignedId> AdjList<E, I> {
     pub fn new() -> Self {
-        Self { edges: Vec::new() }
+        Self {
+            edges: Vec::new(),
+            edge_count: 0,
+        }
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             edges: Vec::with_capacity(capacity),
+            edge_count: 0,
         }
     }
 }
@@ -50,16 +55,24 @@ impl<E: 'static + MaybeSerde, I: UnsignedId + MaybeSerde> GraphEdgeStorage for A
         })
     }
 
-    fn add(&mut self, from: VertexId<I>, to: VertexId<I>, data: E) {
-        let from = from.id();
-        self.edges.resize_with(from + 1, Vec::new);
-        self.edges[from].push(EdgeSimple { to, data });
+    fn add_edge(&mut self, from: VertexId<I>, to: VertexId<I>, data: E)
+    where
+        E: Clone,
+    {
+        if from == to {
+            self.add_edge_directed(from, to, data);
+        } else {
+            self.add_edge_directed(from, to, data.clone());
+            self.add_edge_directed(to, from, data);
+        }
     }
 
-    fn remove(&mut self, from: VertexId<I>, to: VertexId<I>) -> Option<E> {
-        let edges = self.edges.get_mut(from.id())?;
-        let index = edges.iter().position(|edge| edge.to == to)?;
-        Some(edges.remove(index).data)
+    fn remove_edge(&mut self, from: VertexId<I>, to: VertexId<I>) -> Option<E> {
+        let removed = self.remove_edge_directed(from, to);
+        if from != to {
+            self.remove_edge_directed(to, from);
+        }
+        removed
     }
 
     fn get(&self, from: &VertexId<I>, to: &VertexId<I>) -> Option<&E> {
@@ -76,19 +89,20 @@ impl<E: 'static + MaybeSerde, I: UnsignedId + MaybeSerde> GraphEdgeStorage for A
     }
 
     fn count(&self) -> usize {
-        self.edges.iter().map(|edges| edges.len()).sum()
+        self.edge_count
     }
 
     fn with_capacity(capacity: usize) -> Self {
         Self {
             edges: Vec::with_capacity(capacity),
+            edge_count: 0,
         }
     }
 
     fn with_edges(edges: Vec<Edge<E, I>>) -> Self {
         let mut adj_list = Self::with_capacity(edges.len());
         for edge in edges {
-            adj_list.add(edge.from, edge.to, edge.data);
+            adj_list.add_edge_directed(edge.from, edge.to, edge.data);
         }
         adj_list
     }
@@ -98,15 +112,14 @@ impl<E: 'static + MaybeSerde, I: UnsignedId + MaybeSerde> GraphEdgeStorage for A
     }
 
     fn add_all(&mut self, from: VertexId<I>, edges: impl IntoIterator<Item = (VertexId<I>, E)>) {
-        let from = from.id();
-        self.edges.resize_with(from + 1, Vec::new);
         for (to, data) in edges {
-            self.edges[from].push(EdgeSimple { to, data });
+            self.add_edge_directed(from, to, data);
         }
     }
 
     fn remove_all(&mut self, from: VertexId<I>) -> Vec<(VertexId<I>, E)> {
         if let Some(edges) = self.edges.get_mut(from.id()) {
+            self.edge_count -= edges.len();
             edges.drain(..).map(|edge| (edge.to, edge.data)).collect()
         } else {
             Vec::new()
@@ -131,5 +144,19 @@ impl<E: 'static + MaybeSerde, I: UnsignedId + MaybeSerde> GraphEdgeStorageDirect
 
     fn count_outgoing(&self, id: VertexId<I>) -> usize {
         self.count_of(id)
+    }
+
+    fn add_edge_directed(&mut self, from: VertexId<I>, to: VertexId<I>, data: E) {
+        let from = from.id();
+        self.edges.resize_with(from + 1, Vec::new);
+        self.edges[from].push(EdgeSimple { to, data });
+        self.edge_count += 1;
+    }
+
+    fn remove_edge_directed(&mut self, from: VertexId<I>, to: VertexId<I>) -> Option<E> {
+        let edges = self.edges.get_mut(from.id())?;
+        let index = edges.iter().position(|edge| edge.to == to)?;
+        self.edge_count -= 1;
+        Some(edges.swap_remove(index).data)
     }
 }

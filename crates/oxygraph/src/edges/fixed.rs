@@ -7,10 +7,14 @@ use crate::{
 // serde's derive can't generate (de)serialize impls for an array whose size is generic.
 pub struct AdjListFixed<E: 'static, I: UnsignedId, const N: usize> {
     edges: Vec<[Option<EdgeSimple<E, I>>; N]>,
+    edge_count: usize,
 }
 impl<E: 'static, I: UnsignedId, const N: usize> AdjListFixed<E, I, N> {
     pub fn new() -> Self {
-        Self { edges: Vec::new() }
+        Self {
+            edges: Vec::new(),
+            edge_count: 0,
+        }
     }
 }
 
@@ -48,23 +52,24 @@ impl<E: 'static + MaybeSerde, I: UnsignedId + MaybeSerde, const N: usize> GraphE
         })
     }
 
-    fn add(&mut self, from: VertexId<I>, to: VertexId<I>, data: E) {
-        let from = from.id();
-        self.edges
-            .resize_with(from + 1, || std::array::from_fn(|_| None));
-        let edge = self.edges[from]
-            .iter_mut()
-            .find(|edge| edge.is_none())
-            .expect("maximum degree exceeded");
-        *edge = Some(EdgeSimple { to, data });
+    fn add_edge(&mut self, from: VertexId<I>, to: VertexId<I>, data: E)
+    where
+        E: Clone,
+    {
+        if from == to {
+            self.add_edge_directed(from, to, data);
+        } else {
+            self.add_edge_directed(from, to, data.clone());
+            self.add_edge_directed(to, from, data);
+        }
     }
 
-    fn remove(&mut self, from: VertexId<I>, to: VertexId<I>) -> Option<E> {
-        let edges = self.edges.get_mut(from.id())?;
-        let edge = edges
-            .iter_mut()
-            .find(|edge| edge.as_ref().is_some_and(|edge| edge.to == to))?;
-        edge.take().map(|edge| edge.data)
+    fn remove_edge(&mut self, from: VertexId<I>, to: VertexId<I>) -> Option<E> {
+        let removed = self.remove_edge_directed(from, to);
+        if from != to {
+            self.remove_edge_directed(to, from);
+        }
+        removed
     }
 
     fn get(&self, from: &VertexId<I>, to: &VertexId<I>) -> Option<&E> {
@@ -87,22 +92,20 @@ impl<E: 'static + MaybeSerde, I: UnsignedId + MaybeSerde, const N: usize> GraphE
     }
 
     fn count(&self) -> usize {
-        self.edges
-            .iter()
-            .map(|edges| edges.iter().filter(|edge| edge.is_some()).count())
-            .sum()
+        self.edge_count
     }
 
     fn with_capacity(capacity: usize) -> Self {
         Self {
             edges: Vec::with_capacity(capacity),
+            edge_count: 0,
         }
     }
 
     fn with_edges(edges: Vec<Edge<E, I>>) -> Self {
         let mut adj_list = Self::with_capacity(edges.len());
         for edge in edges {
-            adj_list.add(edge.from, edge.to, edge.data);
+            adj_list.add_edge_directed(edge.from, edge.to, edge.data);
         }
         adj_list
     }
@@ -116,7 +119,7 @@ impl<E: 'static + MaybeSerde, I: UnsignedId + MaybeSerde, const N: usize> GraphE
 
     fn add_all(&mut self, from: VertexId<I>, edges: impl IntoIterator<Item = (VertexId<I>, E)>) {
         for (to, data) in edges {
-            self.add(from, to, data);
+            self.add_edge_directed(from, to, data);
         }
     }
 
@@ -126,6 +129,7 @@ impl<E: 'static + MaybeSerde, I: UnsignedId + MaybeSerde, const N: usize> GraphE
             let mut removed_edges = Vec::new();
             for edge in edges.iter_mut() {
                 if let Some(edge) = edge.take() {
+                    self.edge_count -= 1;
                     removed_edges.push((edge.to, edge.data));
                 }
             }
@@ -153,5 +157,29 @@ impl<E: 'static + MaybeSerde, I: UnsignedId + MaybeSerde, const N: usize> GraphE
 
     fn count_outgoing(&self, id: VertexId<I>) -> usize {
         self.count_of(id)
+    }
+
+    fn add_edge_directed(&mut self, from: VertexId<I>, to: VertexId<I>, data: E) {
+        let from = from.id();
+        self.edges
+            .resize_with(from + 1, || std::array::from_fn(|_| None));
+        let edge = self.edges[from]
+            .iter_mut()
+            .find(|edge| edge.is_none())
+            .expect("maximum degree exceeded");
+        *edge = Some(EdgeSimple { to, data });
+        self.edge_count += 1;
+    }
+
+    fn remove_edge_directed(&mut self, from: VertexId<I>, to: VertexId<I>) -> Option<E> {
+        let edges = self.edges.get_mut(from.id())?;
+        let edge = edges
+            .iter_mut()
+            .find(|edge| edge.as_ref().is_some_and(|edge| edge.to == to))?;
+        let data = edge.take().map(|edge| edge.data);
+        if data.is_some() {
+            self.edge_count -= 1;
+        }
+        data
     }
 }

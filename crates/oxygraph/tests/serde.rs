@@ -2,7 +2,7 @@
 
 use oxygraph::{
     Graph, GraphBuilder, VertexId,
-    graph_edges::{AdjList, GraphEdgeStorage},
+    graph_edges::{AdjList, GraphEdgeStorage, GraphEdgeStorageDirected},
     graph_view::GraphView,
 };
 use serde::{Deserialize, Serialize};
@@ -30,7 +30,7 @@ fn build_simple_graph() -> Graph<String, AdjList<i32, u32>> {
     ] {
         graph
             .edges_mut()
-            .add(VertexId::new(from), VertexId::new(to), weight);
+            .add_edge_directed(VertexId::new(from), VertexId::new(to), weight);
     }
     graph
 }
@@ -100,7 +100,7 @@ fn build_complex_graph() -> Graph<City, AdjList<Road, u32>> {
         (5, 0, 690.0, 2),
         (0, 3, 330.0, 2),
     ] {
-        graph.edges_mut().add(
+        graph.edges_mut().add_edge_directed(
             VertexId::new(from),
             VertexId::new(to),
             Road { distance_km, lanes },

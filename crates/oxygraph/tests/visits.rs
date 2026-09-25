@@ -1,5 +1,5 @@
 use oxygraph::GraphBuilder;
-use oxygraph::graph_edges::{AdjList, GraphEdgeStorage, Weighted};
+use oxygraph::graph_edges::{AdjList, GraphEdgeStorageDirected, Weighted};
 use oxygraph::graph_view::GraphView;
 use oxygraph::graph_visit::{Bfs, Dfs, Dijkstra, ViewVisit, VisitError};
 
@@ -34,8 +34,8 @@ fn bfs_visits_reachable_vertices_in_order() {
     let a = graph.add_vertex("a");
     let b = graph.add_vertex("b");
     let c = graph.add_vertex("c");
-    graph.edges_mut().add(a, b, ());
-    graph.edges_mut().add(b, c, ());
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(b, c, ());
 
     let order = Bfs.visit(&graph, a).unwrap();
     assert_eq!(order, vec![a, b, c]);
@@ -55,7 +55,7 @@ fn bfs_ignores_disconnected_vertices() {
     let a = graph.add_vertex("a");
     let b = graph.add_vertex("b");
     let _c = graph.add_vertex("c");
-    graph.edges_mut().add(a, b, ());
+    graph.edges_mut().add_edge_directed(a, b, ());
 
     let order = Bfs.visit(&graph, a).unwrap();
     assert_eq!(order, vec![a, b]);
@@ -65,7 +65,7 @@ fn bfs_ignores_disconnected_vertices() {
 fn bfs_handles_self_loop() {
     let mut graph = GraphBuilder::<&str, ()>::new().build();
     let a = graph.add_vertex("a");
-    graph.edges_mut().add(a, a, ());
+    graph.edges_mut().add_edge_directed(a, a, ());
 
     let order = Bfs.visit(&graph, a).unwrap();
     assert_eq!(order, vec![a]);
@@ -77,8 +77,8 @@ fn dfs_visits_reachable_vertices() {
     let a = graph.add_vertex("a");
     let b = graph.add_vertex("b");
     let c = graph.add_vertex("c");
-    graph.edges_mut().add(a, b, ());
-    graph.edges_mut().add(a, c, ());
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(a, c, ());
 
     // Iterative DFS pops the stack LIFO, so children are visited in reverse
     // of the order children_of() yields them: c (pushed last) before b.
@@ -108,9 +108,9 @@ fn dijkstra_finds_shortest_path() {
     let a = graph.add_vertex("a");
     let b = graph.add_vertex("b");
     let c = graph.add_vertex("c");
-    graph.edges_mut().add(a, b, Km(5.0));
-    graph.edges_mut().add(a, c, Km(1.0));
-    graph.edges_mut().add(c, b, Km(1.0));
+    graph.edges_mut().add_edge_directed(a, b, Km(5.0));
+    graph.edges_mut().add_edge_directed(a, c, Km(1.0));
+    graph.edges_mut().add_edge_directed(c, b, Km(1.0));
 
     let (path, total) = Dijkstra::new(b).visit(&graph, a).unwrap().unwrap();
     assert_eq!(path, vec![a, c, b]);
