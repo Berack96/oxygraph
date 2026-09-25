@@ -4,9 +4,9 @@ use oxygraph::graph_view::GraphView;
 use oxygraph::graph_visit::{
     AStar, AllSimplePaths, ArticulationPoints, BellmanFord, BetweennessCentrality, Bfs,
     BiconnectedComponents, Bipartite, Bridges, ConnectedComponents, CycleDetection, Dfs, Dijkstra,
-    DijkstraReached, Eccentricity, MinimumSpanningTree, MultiSourceBfs, MultiSourceDijkstra,
-    Reached, StronglyConnectedComponents, TopologicalSort, TransitiveClosure, ViewVisit,
-    VisitError,
+    DijkstraReached, Eccentricity, EulerianTrail, MinimumSpanningTree, MultiSourceBfs,
+    MultiSourceDijkstra, Reached, StronglyConnectedComponents, TopologicalSort, TransitiveClosure,
+    ViewVisit, VisitError,
 };
 
 struct NoopVisitor;
@@ -608,6 +608,55 @@ fn cycle_detection_returns_none_on_a_dag() {
     graph.edges_mut().add_edge_directed(b, c, ());
 
     assert_eq!(CycleDetection.visit(&graph), None);
+}
+
+#[test]
+fn eulerian_trail_finds_a_circuit() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(b, c, ());
+    graph.edges_mut().add_edge_directed(c, a, ());
+
+    let trail = EulerianTrail.visit(&graph).unwrap();
+
+    assert_eq!(trail, vec![a, b, c, a]);
+}
+
+#[test]
+fn eulerian_trail_finds_an_open_path_between_the_two_unbalanced_vertices() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(b, c, ());
+    graph.edges_mut().add_edge_directed(c, a, ());
+    graph.edges_mut().add_edge_directed(a, d, ());
+
+    let trail = EulerianTrail.visit(&graph).unwrap();
+
+    // Starts at the vertex with one extra outgoing edge (a) and ends at the one with one
+    // extra incoming edge (d), using each of the 4 edges exactly once.
+    assert_eq!(trail.first(), Some(&a));
+    assert_eq!(trail.last(), Some(&d));
+    assert_eq!(trail.len(), 5);
+}
+
+#[test]
+fn eulerian_trail_returns_none_for_a_disconnected_graph() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(c, d, ());
+
+    assert_eq!(EulerianTrail.visit(&graph), None);
 }
 
 #[test]

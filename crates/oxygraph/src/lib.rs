@@ -29,9 +29,9 @@ pub mod graph_visit {
         AStar, AllSimplePaths, ArticulationPoints, BellmanFord, BetweennessCentrality, Bfs,
         BiconnectedComponents, BiconnectedEdges, Bipartite, Bipartition, BridgeEdges, Bridges,
         Centrality, Components, ConnectedComponents, CycleDetection, Dfs, Dijkstra,
-        DijkstraReached, DijkstraReaching, Eccentricities, Eccentricity, MinimumSpanningTree,
-        MstEdges, MultiSourceBfs, MultiSourceDijkstra, Reachability, Reached, Reaching,
-        SccComponents, StronglyConnectedComponents, TopologicalSort, TransitiveClosure, ViewVisit,
-        VisitError, VisitResult,
+        DijkstraReached, DijkstraReaching, Eccentricities, Eccentricity, EulerianTrail,
+        MinimumSpanningTree, MstEdges, MultiSourceBfs, MultiSourceDijkstra, Reachability, Reached,
+        Reaching, SccComponents, StronglyConnectedComponents, TopologicalSort, TransitiveClosure,
+        ViewVisit, VisitError, VisitResult,
     };
 }
