@@ -1,50 +1,31 @@
 //! Struct central to the library, representing a graph and its associated data structures.
 
 use oxygraph_derive::serde_feature;
-use std::marker::PhantomData;
 
-use crate::{
-    edges::GraphEdgeStorage,
-    vertices::{UnsignedId, VertexId},
-    views::GraphFilteredView,
-};
+use crate::{edges::GraphEdgeStorage, vertices::VertexId, views::GraphFilteredView};
 
-pub trait GraphView<V: 'static, E: 'static, I, S>
-where
-    I: UnsignedId,
-    S: GraphEdgeStorage<E, I>,
-{
-    fn vertex(&self, id: VertexId<I>) -> Option<&V>;
+pub trait GraphView<V: 'static, S: GraphEdgeStorage> {
+    fn vertex(&self, id: VertexId<S::Id>) -> Option<&V>;
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool;
     fn edges(&self) -> &S;
 }
 
 #[serde_feature]
-pub struct Graph<V: 'static, E: 'static, I, S>
-where
-    I: UnsignedId,
-    S: GraphEdgeStorage<E, I>,
-{
+pub struct Graph<V: 'static, S: GraphEdgeStorage> {
     pub(crate) vertices: Vec<V>,
     pub(crate) edge_storage: S,
-    _marker: PhantomData<(E, I)>,
 }
 
-impl<V, E, I, S> Graph<V, E, I, S>
-where
-    I: UnsignedId,
-    S: GraphEdgeStorage<E, I>,
-{
+impl<V, S: GraphEdgeStorage> Graph<V, S> {
     pub(crate) fn new_with(vertices: Vec<V>, edge_storage: S) -> Self {
         Self {
             vertices,
             edge_storage,
-            _marker: PhantomData,
         }
     }
 
-    pub fn add_vertex(&mut self, vertex: V) -> VertexId<I> {
+    pub fn add_vertex(&mut self, vertex: V) -> VertexId<S::Id> {
         self.vertices.push(vertex);
         VertexId::new(self.vertices.len() - 1)
     }
@@ -53,24 +34,20 @@ where
         &mut self.edge_storage
     }
 
-    pub fn get_view(&self) -> GraphFilteredView<'_, V, E, I, S> {
+    pub fn get_view(&self) -> GraphFilteredView<'_, V, S> {
         self.get_filtered_view(None, None)
     }
 
     pub fn get_filtered_view(
         &self,
         filter_vertices: Option<fn(&V) -> bool>,
-        filter_edges: Option<fn(&E) -> bool>,
-    ) -> GraphFilteredView<'_, V, E, I, S> {
+        filter_edges: Option<fn(&S::Edge) -> bool>,
+    ) -> GraphFilteredView<'_, V, S> {
         GraphFilteredView::new(self, filter_vertices, filter_edges)
     }
 }
 
-impl<V, E, I, S> GraphView<V, E, I, S> for Graph<V, E, I, S>
-where
-    I: UnsignedId,
-    S: GraphEdgeStorage<E, I>,
-{
+impl<V, S: GraphEdgeStorage> GraphView<V, S> for Graph<V, S> {
     fn len(&self) -> usize {
         self.vertices.len()
     }
@@ -79,7 +56,7 @@ where
         self.vertices.is_empty()
     }
 
-    fn vertex(&self, id: VertexId<I>) -> Option<&V> {
+    fn vertex(&self, id: VertexId<S::Id>) -> Option<&V> {
         self.vertices.get(id.id())
     }
 

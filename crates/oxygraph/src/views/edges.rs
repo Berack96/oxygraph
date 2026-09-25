@@ -1,49 +1,35 @@
-use std::marker::PhantomData;
-
 use crate::{
     VertexId,
     edges::{Edge, EdgeView, GraphEdgeStorage, GraphEdgeStorageDirected},
-    vertices::UnsignedId,
 };
 
-pub struct EdgeFilteredView<'a, E: 'static, I: 'a, S>
-where
-    I: UnsignedId,
-    S: GraphEdgeStorage<E, I>,
-{
+pub struct EdgeFilteredView<'a, S: GraphEdgeStorage> {
     edge_storage: &'a S,
-    filter_edges: Option<fn(&E) -> bool>,
-    _marker: PhantomData<I>,
+    filter_edges: Option<fn(&S::Edge) -> bool>,
 }
 
-impl<'a, E, I, S> EdgeFilteredView<'a, E, I, S>
-where
-    I: UnsignedId,
-    S: GraphEdgeStorage<E, I>,
-{
-    pub(crate) fn new(edge_storage: &'a S, filter_edges: Option<fn(&E) -> bool>) -> Self {
+impl<'a, S: GraphEdgeStorage> EdgeFilteredView<'a, S> {
+    pub(crate) fn new(edge_storage: &'a S, filter_edges: Option<fn(&S::Edge) -> bool>) -> Self {
         Self {
             edge_storage,
             filter_edges,
-            _marker: PhantomData,
         }
     }
 }
 
-impl<'a, E, I, S> GraphEdgeStorage<E, I> for EdgeFilteredView<'a, E, I, S>
-where
-    I: UnsignedId,
-    S: GraphEdgeStorage<E, I>,
-{
+impl<'a, S: GraphEdgeStorage> GraphEdgeStorage for EdgeFilteredView<'a, S> {
+    type Edge = S::Edge;
+    type Id = S::Id;
+
     fn with_capacity(_capacity: usize) -> Self {
         panic!("EdgeFilteredView cannot be created with capacity");
     }
 
-    fn with_edges(_edges: Vec<Edge<E, I>>) -> Self {
+    fn with_edges(_edges: Vec<Edge<S::Edge, S::Id>>) -> Self {
         panic!("EdgeFilteredView cannot be created with edges");
     }
 
-    fn get_all(&self) -> impl Iterator<Item = EdgeView<'_, E, I>> {
+    fn get_all(&self) -> impl Iterator<Item = EdgeView<'_, S::Edge, S::Id>> {
         self.edge_storage
             .get_all()
             .filter(|edge| self.filter_edges.is_none_or(|filter| filter(edge.data)))
@@ -56,75 +42,77 @@ where
             .count()
     }
 
-    fn of(&self, id: VertexId<I>) -> impl Iterator<Item = EdgeView<'_, E, I>> {
+    fn of(&self, id: VertexId<S::Id>) -> impl Iterator<Item = EdgeView<'_, S::Edge, S::Id>> {
         self.edge_storage
             .of(id)
             .filter(|edge| self.filter_edges.is_none_or(|filter| filter(edge.data)))
     }
 
-    fn count_of(&self, id: VertexId<I>) -> usize {
+    fn count_of(&self, id: VertexId<S::Id>) -> usize {
         self.edge_storage
             .of(id)
             .filter(|edge| self.filter_edges.is_none_or(|filter| filter(edge.data)))
             .count()
     }
 
-    fn add(&mut self, _from: VertexId<I>, _to: VertexId<I>, _data: E) {
+    fn add(&mut self, _from: VertexId<S::Id>, _to: VertexId<S::Id>, _data: S::Edge) {
         panic!("EdgeFilteredView cannot add edges");
     }
 
-    fn remove(&mut self, _from: VertexId<I>, _to: VertexId<I>) -> Option<E> {
+    fn remove(&mut self, _from: VertexId<S::Id>, _to: VertexId<S::Id>) -> Option<S::Edge> {
         panic!("EdgeFilteredView cannot remove edges");
     }
 
-    fn get(&self, from: &VertexId<I>, to: &VertexId<I>) -> Option<&E> {
+    fn get(&self, from: &VertexId<S::Id>, to: &VertexId<S::Id>) -> Option<&S::Edge> {
         self.edge_storage
             .get(from, to)
             .filter(|data| self.filter_edges.is_none_or(|filter| filter(data)))
     }
 
-    fn has_edge(&self, from: &VertexId<I>, to: &VertexId<I>) -> bool {
+    fn has_edge(&self, from: &VertexId<S::Id>, to: &VertexId<S::Id>) -> bool {
         self.get(from, to).is_some()
     }
 
-    fn add_all(&mut self, _from: VertexId<I>, _edges: impl IntoIterator<Item = (VertexId<I>, E)>) {
+    fn add_all(
+        &mut self,
+        _from: VertexId<S::Id>,
+        _edges: impl IntoIterator<Item = (VertexId<S::Id>, S::Edge)>,
+    ) {
         panic!("EdgeFilteredView cannot add edges");
     }
 
-    fn remove_all(&mut self, _from: VertexId<I>) -> Vec<(VertexId<I>, E)> {
+    fn remove_all(&mut self, _from: VertexId<S::Id>) -> Vec<(VertexId<S::Id>, S::Edge)> {
         panic!("EdgeFilteredView cannot remove edges");
-    }
-
-    fn is_directed(&self) -> bool {
-        false
     }
 }
 
-impl<'a, E, I, S> GraphEdgeStorageDirected<E, I> for EdgeFilteredView<'a, E, I, S>
-where
-    I: UnsignedId,
-    S: GraphEdgeStorageDirected<E, I>,
-{
-    fn children_of(&self, id: VertexId<I>) -> impl Iterator<Item = EdgeView<'_, E, I>> {
+impl<'a, S: GraphEdgeStorageDirected> GraphEdgeStorageDirected for EdgeFilteredView<'a, S> {
+    fn children_of(
+        &self,
+        id: VertexId<S::Id>,
+    ) -> impl Iterator<Item = EdgeView<'_, S::Edge, S::Id>> {
         self.edge_storage
             .children_of(id)
             .filter(|edge| self.filter_edges.is_none_or(|filter| filter(edge.data)))
     }
 
-    fn parents_of(&self, id: VertexId<I>) -> impl Iterator<Item = EdgeView<'_, E, I>> {
+    fn parents_of(
+        &self,
+        id: VertexId<S::Id>,
+    ) -> impl Iterator<Item = EdgeView<'_, S::Edge, S::Id>> {
         self.edge_storage
             .parents_of(id)
             .filter(|edge| self.filter_edges.is_none_or(|filter| filter(edge.data)))
     }
 
-    fn count_incoming(&self, id: VertexId<I>) -> usize {
+    fn count_incoming(&self, id: VertexId<S::Id>) -> usize {
         self.edge_storage
             .parents_of(id)
             .filter(|edge| self.filter_edges.is_none_or(|filter| filter(edge.data)))
             .count()
     }
 
-    fn count_outgoing(&self, id: VertexId<I>) -> usize {
+    fn count_outgoing(&self, id: VertexId<S::Id>) -> usize {
         self.edge_storage
             .children_of(id)
             .filter(|edge| self.filter_edges.is_none_or(|filter| filter(edge.data)))

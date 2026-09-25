@@ -53,24 +53,22 @@ impl<I: UnsignedId> Dijkstra<I> {
     }
 }
 
-impl<V: 'static, E: 'static, I, S> ViewVisit<V, E, I, S> for Dijkstra<I>
+impl<V: 'static, S: GraphEdgeStorage> ViewVisit<V, S> for Dijkstra<S::Id>
 where
-    I: UnsignedId,
-    E: Weighted,
-    S: GraphEdgeStorage<E, I>,
+    S::Edge: Weighted,
 {
-    type Output = Option<(Vec<VertexId<I>>, f64)>;
+    type Output = Option<(Vec<VertexId<S::Id>>, f64)>;
 
-    fn visit<G>(&self, view: &G, start: VertexId<I>) -> VisitResult<Self::Output>
+    fn visit<G>(&self, view: &G, start: VertexId<S::Id>) -> VisitResult<Self::Output>
     where
-        G: GraphView<V, E, I, S>,
+        G: GraphView<V, S>,
     {
         if view.vertex(start).is_none() || view.vertex(self.target).is_none() {
             return Err(VisitError::VertexNotFound);
         }
 
         let mut marks = VertexMarks::new(Mark::Unvisited);
-        let mut previous: VertexMarks<Option<VertexId<I>>> = VertexMarks::new(None);
+        let mut previous: VertexMarks<Option<VertexId<S::Id>>> = VertexMarks::new(None);
         let mut heap = BinaryHeap::new();
 
         marks.set(start, Mark::Distance(0.0));

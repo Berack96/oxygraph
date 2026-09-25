@@ -5,7 +5,7 @@ use oxygraph::graph_visit::{Bfs, Dfs, Dijkstra, ViewVisit, VisitError};
 
 struct NoopVisitor;
 
-impl ViewVisit<String, (), u32, AdjList<(), u32>> for NoopVisitor {
+impl ViewVisit<String, AdjList<(), u32>> for NoopVisitor {
     type Output = ();
 
     fn visit<G>(
@@ -14,7 +14,7 @@ impl ViewVisit<String, (), u32, AdjList<(), u32>> for NoopVisitor {
         _start: oxygraph::VertexId<u32>,
     ) -> oxygraph::graph_visit::VisitResult<()>
     where
-        G: GraphView<String, (), u32, AdjList<(), u32>>,
+        G: GraphView<String, AdjList<(), u32>>,
     {
         Ok(())
     }
@@ -94,6 +94,7 @@ fn dfs_reports_missing_start_vertex() {
     assert_eq!(Dfs.visit(&graph, missing), Err(VisitError::VertexNotFound));
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Km(f64);
 impl Weighted for Km {
     fn weight(&self) -> f64 {

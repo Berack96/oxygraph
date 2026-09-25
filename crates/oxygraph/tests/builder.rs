@@ -36,7 +36,6 @@ mod test_builder {
     #[test]
     fn builds_fixed_adjacency_list() {
         let graph = GraphBuilder::<String, f32>::new()
-            .directed(true)
             .with_vertices(vec![
                 String::from("a"),
                 String::from("b"),

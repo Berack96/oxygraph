@@ -9,42 +9,41 @@ rust = { version = "1.97.1", components = [
 ] }
 
 
-# Da aggiunere cose quando necessarie. Come per esempio fare il build automatico quando un file cambia (watch).
-# Per ora mette a posto l'installazione di git.
+# Add tasks here as needed, e.g. an automatic build on file change (watch).
+# For now it just sets up the git config.
 [tasks.setup]
 description = "Setup the project"
 run = "git config --local include.path ../.gitconfig"
 
-# invocato da rust-analyzer, output JSON non leggibile a mano
+# invoked by rust-analyzer, JSON output not meant to be read by hand
 [tasks."rust:clippy-editor"]
-description = "Clippy in formato JSON, per rust-analyzer.check.overrideCommand"
+description = "Clippy in JSON format, for rust-analyzer.check.overrideCommand"
 hide = true
 run = "cargo clippy --all-targets --message-format=json-diagnostic-rendered-ansi -- -D warnings"
 
-# invocato dalla CI, non pensato per l'uso manuale. fmt, clippy e test in una
-# sola invocazione di mise (un solo step nel workflow) così il toolchain viene
-# risolto una volta sola invece che ripetersi ad ogni step; tutti e tre usano
-# lo stesso profilo cargo "ci" per condividere la target dir ed evitare di
-# ricompilare i crate due volte (clippy con un profilo, i test con un altro)
+# invoked by CI, not meant for manual use: single mise call sharing one
+# "ci" cargo profile; clippy/tests run twice, default features and --all-features.
 [tasks."rust:ci"]
-description = "Fmt, clippy e test del workspace, warning come errori"
+description = "Fmt, clippy and test for the workspace, warnings as errors"
 hide = true
 run = [
 	"cargo fmt --all -- --check",
 	"cargo clippy --profile ci --workspace --all-targets -- -D warnings",
+	"cargo clippy --profile ci --workspace --all-targets --all-features -- -D warnings",
 	"cargo nextest run --workspace --no-tests=warn --cargo-profile ci",
+	"cargo nextest run --workspace --no-tests=warn --cargo-profile ci --all-features",
 ]
 
 [tasks."rust:fmt"]
-description = "Formatta il codice del workspace"
+description = "Format the workspace code"
 run = "cargo fmt --all"
 
 [tasks."rust:test"]
-description = "Esegue la test suite del workspace con nextest"
-# --no-tests=warn: nessun crate ha ancora test, altrimenti nextest fallirebbe a vuoto
+description = "Run the workspace test suite with nextest"
+# --no-tests=warn: no crate has tests yet, otherwise nextest would fail on an empty run
 run = "cargo nextest run --workspace --no-tests=warn"
 
 [tasks."rust:bench"]
-description = "Esegue i benchmark con Divan"
-usage = 'arg "[samples]" help="Numero di sample Divan" default="100"'
+description = "Run the benchmarks with Divan"
+usage = 'arg "[samples]" help="Number of Divan samples" default="100"'
 run = "cargo bench --bench graph_bench -- --sample-count {{ usage.samples }}"

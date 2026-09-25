@@ -2,8 +2,8 @@
 //! concrete `Graph`.
 //!
 //! A visit is bound to the kind of graph it supports through the storage bound `S`:
-//! a bound of `S: GraphEdgeStorage<E, I>` accepts any graph, directed or undirected,
-//! while `S: GraphEdgeStorageDirected<E, I>` restricts the visit to graphs whose storage
+//! a bound of `S: GraphEdgeStorage` accepts any graph, directed or undirected,
+//! while `S: GraphEdgeStorageDirected` restricts the visit to graphs whose storage
 //! exposes direction-aware navigation ([`children_of`](crate::edges::GraphEdgeStorageDirected::children_of) /
 //! [`parents_of`](crate::edges::GraphEdgeStorageDirected::parents_of)).
 
@@ -22,17 +22,13 @@ use crate::{
 };
 
 /// A traversal over a generic graph view, bound to the graph kinds accepted by `S`.
-pub trait ViewVisit<V: 'static, E: 'static, I, S>
-where
-    I: UnsignedId,
-    S: GraphEdgeStorage<E, I>,
-{
+pub trait ViewVisit<V: 'static, S: GraphEdgeStorage> {
     /// Result produced by the visit, custom to each implementation.
     type Output;
 
-    fn visit<G>(&self, view: &G, start: VertexId<I>) -> VisitResult<Self::Output>
+    fn visit<G>(&self, view: &G, start: VertexId<S::Id>) -> VisitResult<Self::Output>
     where
-        G: GraphView<V, E, I, S>;
+        G: GraphView<V, S>;
 }
 
 pub type VisitResult<T> = Result<T, VisitError>;

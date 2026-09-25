@@ -21,7 +21,7 @@ fn build_adj_list_fixed() -> AdjListFixed<(), u32, EDGES_PER_VERTEX> {
     storage
 }
 
-fn add_edges<S: GraphEdgeStorage<(), u32>>(storage: &mut S) {
+fn add_edges<S: GraphEdgeStorage<Edge = (), Id = u32>>(storage: &mut S) {
     for from in 0..VERTICES {
         for offset in 0..EDGES_PER_VERTEX {
             let to = (from + offset + 1) % VERTICES;

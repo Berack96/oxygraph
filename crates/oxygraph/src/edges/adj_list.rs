@@ -1,7 +1,7 @@
 use oxygraph_derive::serde_feature;
 
 use crate::{
-    edges::{Edge, EdgeSimple, EdgeView, GraphEdgeStorage, GraphEdgeStorageDirected},
+    edges::{Edge, EdgeSimple, EdgeView, GraphEdgeStorage, GraphEdgeStorageDirected, MaybeSerde},
     vertices::{UnsignedId, VertexId},
 };
 
@@ -28,7 +28,10 @@ impl<E: 'static, I: UnsignedId> Default for AdjList<E, I> {
     }
 }
 
-impl<E: 'static, I: UnsignedId> GraphEdgeStorage<E, I> for AdjList<E, I> {
+impl<E: 'static + MaybeSerde, I: UnsignedId + MaybeSerde> GraphEdgeStorage for AdjList<E, I> {
+    type Edge = E;
+    type Id = I;
+
     fn of(&self, id: VertexId<I>) -> impl Iterator<Item = EdgeView<'_, E, I>> {
         let vert_id = id.id();
         self.edges
@@ -111,7 +114,9 @@ impl<E: 'static, I: UnsignedId> GraphEdgeStorage<E, I> for AdjList<E, I> {
     }
 }
 
-impl<E: 'static, I: UnsignedId> GraphEdgeStorageDirected<E, I> for AdjList<E, I> {
+impl<E: 'static + MaybeSerde, I: UnsignedId + MaybeSerde> GraphEdgeStorageDirected
+    for AdjList<E, I>
+{
     fn children_of(&self, id: VertexId<I>) -> impl Iterator<Item = EdgeView<'_, E, I>> {
         self.of(id)
     }
