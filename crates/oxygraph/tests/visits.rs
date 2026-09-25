@@ -58,9 +58,10 @@ fn dfs_visits_reachable_vertices() {
     graph.edges_mut().add(a, b, ());
     graph.edges_mut().add(a, c, ());
 
+    // Iterative DFS pops the stack LIFO, so children are visited in reverse
+    // of the order children_of() yields them: c (pushed last) before b.
     let order = Dfs.visit(&graph, a).unwrap();
-    assert_eq!(order[0], a);
-    assert_eq!(order.len(), 3);
+    assert_eq!(order, vec![a, c, b]);
 }
 
 struct Km(f64);
