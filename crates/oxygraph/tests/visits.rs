@@ -50,6 +50,28 @@ fn bfs_reports_missing_start_vertex() {
 }
 
 #[test]
+fn bfs_ignores_disconnected_vertices() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let _c = graph.add_vertex("c");
+    graph.edges_mut().add(a, b, ());
+
+    let order = Bfs.visit(&graph, a).unwrap();
+    assert_eq!(order, vec![a, b]);
+}
+
+#[test]
+fn bfs_handles_self_loop() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    graph.edges_mut().add(a, a, ());
+
+    let order = Bfs.visit(&graph, a).unwrap();
+    assert_eq!(order, vec![a]);
+}
+
+#[test]
 fn dfs_visits_reachable_vertices() {
     let mut graph = GraphBuilder::<&str, ()>::new().build();
     let a = graph.add_vertex("a");
@@ -62,6 +84,14 @@ fn dfs_visits_reachable_vertices() {
     // of the order children_of() yields them: c (pushed last) before b.
     let order = Dfs.visit(&graph, a).unwrap();
     assert_eq!(order, vec![a, c, b]);
+}
+
+#[test]
+fn dfs_reports_missing_start_vertex() {
+    let graph = GraphBuilder::<&str, ()>::new().build();
+    let missing = oxygraph::VertexId::new(0);
+
+    assert_eq!(Dfs.visit(&graph, missing), Err(VisitError::VertexNotFound));
 }
 
 struct Km(f64);
@@ -84,4 +114,37 @@ fn dijkstra_finds_shortest_path() {
     let (path, total) = Dijkstra::new(b).visit(&graph, a).unwrap().unwrap();
     assert_eq!(path, vec![a, c, b]);
     assert_eq!(total, 2.0);
+}
+
+#[test]
+fn dijkstra_returns_none_for_unreachable_target() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+
+    assert_eq!(Dijkstra::new(b).visit(&graph, a).unwrap(), None);
+}
+
+#[test]
+fn dijkstra_reports_missing_start_vertex() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let b = graph.add_vertex("b");
+    let missing = oxygraph::VertexId::new(1);
+
+    assert_eq!(
+        Dijkstra::new(b).visit(&graph, missing),
+        Err(VisitError::VertexNotFound)
+    );
+}
+
+#[test]
+fn dijkstra_reports_missing_target_vertex() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let missing = oxygraph::VertexId::new(1);
+
+    assert_eq!(
+        Dijkstra::new(missing).visit(&graph, a),
+        Err(VisitError::VertexNotFound)
+    );
 }
