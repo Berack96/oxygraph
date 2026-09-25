@@ -2,9 +2,9 @@ use oxygraph::GraphBuilder;
 use oxygraph::graph_edges::{AdjList, GraphEdgeStorage, GraphEdgeStorageDirected, Weighted};
 use oxygraph::graph_view::GraphView;
 use oxygraph::graph_visit::{
-    ArticulationPoints, Bfs, Bridges, ConnectedComponents, Dfs, Dijkstra, DijkstraReached,
-    MultiSourceBfs, MultiSourceDijkstra, Reached, StronglyConnectedComponents, TopologicalSort,
-    ViewVisit, VisitError,
+    ArticulationPoints, Bfs, Bridges, ConnectedComponents, CycleDetection, Dfs, Dijkstra,
+    DijkstraReached, MultiSourceBfs, MultiSourceDijkstra, Reached, StronglyConnectedComponents,
+    TopologicalSort, ViewVisit, VisitError,
 };
 
 struct NoopVisitor;
@@ -540,6 +540,40 @@ fn topological_sort_returns_none_on_a_cycle() {
     graph.edges_mut().add_edge_directed(b, a, ());
 
     assert_eq!(TopologicalSort.visit(&graph), None);
+}
+
+#[test]
+fn cycle_detection_finds_a_cycle() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(b, c, ());
+    graph.edges_mut().add_edge_directed(c, a, ());
+
+    let cycle = CycleDetection.visit(&graph).unwrap();
+
+    // The cycle starts wherever the DFS re-encounters an ancestor, but the three
+    // vertices must appear in their cyclic order starting from that point.
+    let position = |v| cycle.iter().position(|&id| id == v).unwrap();
+    assert_eq!(cycle.len(), 3);
+    let start = position(a);
+    assert_eq!(cycle[(start + 1) % 3], b);
+    assert_eq!(cycle[(start + 2) % 3], c);
+}
+
+#[test]
+fn cycle_detection_returns_none_on_a_dag() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(a, c, ());
+    graph.edges_mut().add_edge_directed(b, c, ());
+
+    assert_eq!(CycleDetection.visit(&graph), None);
 }
 
 #[test]

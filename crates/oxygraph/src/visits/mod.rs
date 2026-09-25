@@ -10,6 +10,7 @@
 mod bfs;
 mod bridges;
 mod connected_components;
+mod cycle;
 mod dfs;
 mod dijkstra;
 mod multi_source_bfs;
@@ -20,6 +21,7 @@ mod topological_sort;
 pub use bfs::Bfs;
 pub use bridges::{ArticulationPoints, BridgeEdges, Bridges};
 pub use connected_components::{Components, ConnectedComponents};
+pub use cycle::CycleDetection;
 pub use dfs::Dfs;
 pub use dijkstra::Dijkstra;
 pub use multi_source_bfs::{MultiSourceBfs, Reached, Reaching};
