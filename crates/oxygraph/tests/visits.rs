@@ -3,7 +3,7 @@ use oxygraph::graph_edges::{AdjList, GraphEdgeStorage, GraphEdgeStorageDirected,
 use oxygraph::graph_view::GraphView;
 use oxygraph::graph_visit::{
     Bfs, ConnectedComponents, Dfs, Dijkstra, DijkstraReached, MultiSourceBfs, MultiSourceDijkstra,
-    Reached, ViewVisit, VisitError,
+    Reached, StronglyConnectedComponents, ViewVisit, VisitError,
 };
 
 struct NoopVisitor;
@@ -330,4 +330,38 @@ fn connected_components_of_an_empty_graph_is_empty() {
     let graph = GraphBuilder::<&str, ()>::new().build();
 
     assert_eq!(ConnectedComponents.visit(&graph), Vec::<Vec<_>>::new());
+}
+
+#[test]
+fn scc_groups_mutually_reachable_vertices() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    let e = graph.add_vertex("e");
+    // a -> b -> c -> a is a cycle (one SCC); c -> d -> e is a one-way tail (two singletons).
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(b, c, ());
+    graph.edges_mut().add_edge_directed(c, a, ());
+    graph.edges_mut().add_edge_directed(c, d, ());
+    graph.edges_mut().add_edge_directed(d, e, ());
+
+    let mut components = StronglyConnectedComponents.visit(&graph);
+    for component in &mut components {
+        component.sort_by_key(|v| v.id());
+    }
+    components.sort_by_key(|component| component[0].id());
+
+    assert_eq!(components, vec![vec![a, b, c], vec![d], vec![e]]);
+}
+
+#[test]
+fn scc_of_an_empty_graph_is_empty() {
+    let graph = GraphBuilder::<&str, ()>::new().build();
+
+    assert_eq!(
+        StronglyConnectedComponents.visit(&graph),
+        Vec::<Vec<_>>::new()
+    );
 }

@@ -27,6 +27,7 @@ pub mod graph_view {
 pub mod graph_visit {
     pub use super::visits::{
         Bfs, Components, ConnectedComponents, Dfs, Dijkstra, DijkstraReached, DijkstraReaching,
-        MultiSourceBfs, MultiSourceDijkstra, Reached, Reaching, ViewVisit, VisitError, VisitResult,
+        MultiSourceBfs, MultiSourceDijkstra, Reached, Reaching, SccComponents,
+        StronglyConnectedComponents, ViewVisit, VisitError, VisitResult,
     };
 }
