@@ -7,6 +7,7 @@
 //! exposes direction-aware navigation ([`children_of`](crate::edges::GraphEdgeStorageDirected::children_of) /
 //! [`parents_of`](crate::edges::GraphEdgeStorageDirected::parents_of)).
 
+mod astar;
 mod bellman_ford;
 mod bfs;
 mod biconnected;
@@ -21,6 +22,7 @@ mod multi_source_dijkstra;
 mod scc;
 mod topological_sort;
 
+pub use astar::AStar;
 pub use bellman_ford::BellmanFord;
 pub use bfs::Bfs;
 pub use biconnected::{BiconnectedComponents, BiconnectedEdges};
