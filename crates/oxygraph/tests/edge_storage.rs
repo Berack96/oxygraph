@@ -93,6 +93,8 @@ macro_rules! storage_tests {
 storage_tests! {
     adj_list => oxygraph::graph_edges::AdjList<String, u32>,
     adj_list_fixed => oxygraph::graph_edges::AdjListFixed<String, u32, 2>,
+    adj_csr => oxygraph::graph_edges::AdjCsr<String, u32>,
+    adj_matrix => oxygraph::graph_edges::AdjMatrix<String, u32>,
 }
 
 #[cfg(test)]

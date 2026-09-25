@@ -1,8 +1,12 @@
 mod adj_list;
+mod csr;
 mod fixed;
+mod matrix;
 
 pub use adj_list::AdjList;
+pub use csr::AdjCsr;
 pub use fixed::AdjListFixed;
+pub use matrix::AdjMatrix;
 
 use oxygraph_derive::serde_feature;
 
