@@ -45,7 +45,7 @@ pub fn serde_feature(args: TokenStream, input: TokenStream) -> TokenStream {
     match item {
         Item::Struct(item_struct) => handle_struct(item_struct),
         Item::Trait(item_trait) => handle_trait(item_trait, &overrides),
-        _ => panic!("La macro supporta solo Struct e Trait"),
+        _ => panic!("the macro only supports Struct and Trait items"),
     }
 }
 
