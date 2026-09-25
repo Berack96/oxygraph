@@ -20,6 +20,7 @@ mod mst;
 mod multi_source_bfs;
 mod multi_source_dijkstra;
 mod scc;
+mod simple_paths;
 mod topological_sort;
 
 pub use astar::AStar;
@@ -35,6 +36,7 @@ pub use mst::{MinimumSpanningTree, MstEdges};
 pub use multi_source_bfs::{MultiSourceBfs, Reached, Reaching};
 pub use multi_source_dijkstra::{DijkstraReached, DijkstraReaching, MultiSourceDijkstra};
 pub use scc::{SccComponents, StronglyConnectedComponents};
+pub use simple_paths::AllSimplePaths;
 pub use topological_sort::TopologicalSort;
 
 use crate::{

@@ -2,7 +2,7 @@ use oxygraph::GraphBuilder;
 use oxygraph::graph_edges::{AdjList, GraphEdgeStorage, GraphEdgeStorageDirected, Weighted};
 use oxygraph::graph_view::GraphView;
 use oxygraph::graph_visit::{
-    AStar, ArticulationPoints, BellmanFord, Bfs, BiconnectedComponents, Bridges,
+    AStar, AllSimplePaths, ArticulationPoints, BellmanFord, Bfs, BiconnectedComponents, Bridges,
     ConnectedComponents, CycleDetection, Dfs, Dijkstra, DijkstraReached, MinimumSpanningTree,
     MultiSourceBfs, MultiSourceDijkstra, Reached, StronglyConnectedComponents, TopologicalSort,
     ViewVisit, VisitError,
@@ -607,6 +607,39 @@ fn cycle_detection_returns_none_on_a_dag() {
     graph.edges_mut().add_edge_directed(b, c, ());
 
     assert_eq!(CycleDetection.visit(&graph), None);
+}
+
+#[test]
+fn all_simple_paths_enumerates_every_route_to_the_target() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(a, c, ());
+    graph.edges_mut().add_edge_directed(b, d, ());
+    graph.edges_mut().add_edge_directed(c, d, ());
+    graph.edges_mut().add_edge_directed(b, c, ()); // opens a third route: a-b-c-d
+
+    let paths = AllSimplePaths::new(d).visit(&graph, a).unwrap();
+
+    assert_eq!(paths.len(), 3);
+    assert!(paths.contains(&vec![a, b, d]));
+    assert!(paths.contains(&vec![a, c, d]));
+    assert!(paths.contains(&vec![a, b, c, d]));
+}
+
+#[test]
+fn all_simple_paths_is_empty_for_an_unreachable_target() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+
+    assert_eq!(
+        AllSimplePaths::new(b).visit(&graph, a).unwrap(),
+        Vec::<Vec<_>>::new()
+    );
 }
 
 #[test]
