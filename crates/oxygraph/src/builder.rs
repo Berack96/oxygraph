@@ -12,7 +12,6 @@ where
     S: GraphEdgeStorage<Edge = E, Id = I>,
 {
     vertices: Option<Vec<V>>,
-    directed: bool,
     _marker: PhantomData<(V, E, I, S)>,
 }
 
@@ -23,7 +22,6 @@ impl<V, E: MaybeSerde> GraphBuilder<V, E> {
     pub fn new() -> Self {
         Self {
             vertices: None,
-            directed: false,
             _marker: PhantomData,
         }
     }
@@ -42,33 +40,26 @@ where
     I: UnsignedId + MaybeSerde,
     S: GraphEdgeStorage<Edge = E, Id = I>,
 {
-    // Transizione da Dyn a Fixed usando const generics
+    // Switch from the dynamic adjacency list to the fixed-capacity one, sized by a const generic.
     pub fn as_adjlist_fixed_max_degree<const N: usize>(
         self,
     ) -> GraphBuilder<V, E, I, AdjListFixed<E, I, N>> {
         GraphBuilder {
             vertices: self.vertices,
-            directed: self.directed,
             _marker: PhantomData,
         }
     }
 
-    // Transizione esplicita a Dynamic
+    // Switch explicitly back to the dynamic adjacency list.
     pub fn as_adjlist(self) -> GraphBuilder<V, E, I, AdjList<E, I>> {
         GraphBuilder {
             vertices: self.vertices,
-            directed: self.directed,
             _marker: PhantomData,
         }
     }
 
     pub fn with_vertices(mut self, vertices: Vec<V>) -> Self {
         self.vertices = Some(vertices);
-        self
-    }
-
-    pub fn directed(mut self, directed: bool) -> Self {
-        self.directed = directed;
         self
     }
 
