@@ -8,6 +8,7 @@
 //! [`parents_of`](crate::edges::GraphEdgeStorageDirected::parents_of)).
 
 mod bfs;
+mod bridges;
 mod connected_components;
 mod dfs;
 mod dijkstra;
@@ -16,6 +17,7 @@ mod multi_source_dijkstra;
 mod scc;
 
 pub use bfs::Bfs;
+pub use bridges::{ArticulationPoints, BridgeEdges, Bridges};
 pub use connected_components::{Components, ConnectedComponents};
 pub use dfs::Dfs;
 pub use dijkstra::Dijkstra;

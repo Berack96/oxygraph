@@ -2,8 +2,9 @@ use oxygraph::GraphBuilder;
 use oxygraph::graph_edges::{AdjList, GraphEdgeStorage, GraphEdgeStorageDirected, Weighted};
 use oxygraph::graph_view::GraphView;
 use oxygraph::graph_visit::{
-    Bfs, ConnectedComponents, Dfs, Dijkstra, DijkstraReached, MultiSourceBfs, MultiSourceDijkstra,
-    Reached, StronglyConnectedComponents, ViewVisit, VisitError,
+    ArticulationPoints, Bfs, Bridges, ConnectedComponents, Dfs, Dijkstra, DijkstraReached,
+    MultiSourceBfs, MultiSourceDijkstra, Reached, StronglyConnectedComponents, ViewVisit,
+    VisitError,
 };
 
 struct NoopVisitor;
@@ -364,4 +365,84 @@ fn scc_of_an_empty_graph_is_empty() {
         StronglyConnectedComponents.visit(&graph),
         Vec::<Vec<_>>::new()
     );
+}
+
+/// Two triangles {a, b, c} and {d, e, f} joined by a single edge c-d: that edge is the only
+/// bridge, and its two endpoints are the only articulation points.
+#[allow(clippy::type_complexity)]
+fn two_triangles_joined_by_a_bridge() -> (
+    oxygraph::Graph<&'static str, AdjList<(), u32>>,
+    [oxygraph::VertexId<u32>; 6],
+) {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    let e = graph.add_vertex("e");
+    let f = graph.add_vertex("f");
+    graph.edges_mut().add_edge(a, b, ());
+    graph.edges_mut().add_edge(b, c, ());
+    graph.edges_mut().add_edge(c, a, ());
+    graph.edges_mut().add_edge(d, e, ());
+    graph.edges_mut().add_edge(e, f, ());
+    graph.edges_mut().add_edge(f, d, ());
+    graph.edges_mut().add_edge(c, d, ());
+    (graph, [a, b, c, d, e, f])
+}
+
+#[test]
+fn bridges_finds_the_single_cut_edge_between_two_cycles() {
+    let (graph, [_a, _b, c, d, _e, _f]) = two_triangles_joined_by_a_bridge();
+
+    let bridges = Bridges.visit(&graph);
+
+    assert_eq!(bridges.len(), 1);
+    let (from, to) = bridges[0];
+    assert!((from == c && to == d) || (from == d && to == c));
+}
+
+#[test]
+fn bridges_finds_none_inside_a_single_cycle() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge(a, b, ());
+    graph.edges_mut().add_edge(b, c, ());
+    graph.edges_mut().add_edge(c, a, ());
+
+    assert_eq!(Bridges.visit(&graph), Vec::new());
+}
+
+#[test]
+fn articulation_points_finds_the_bridge_endpoints() {
+    let (graph, [_a, _b, c, d, _e, _f]) = two_triangles_joined_by_a_bridge();
+
+    let mut points = ArticulationPoints.visit(&graph);
+    points.sort_by_key(|v| v.id());
+    let mut expected = [c, d];
+    expected.sort_by_key(|v| v.id());
+
+    assert_eq!(points, expected);
+}
+
+#[test]
+fn articulation_points_finds_the_shared_vertex_of_a_bowtie() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let p1 = graph.add_vertex("p1");
+    let p2 = graph.add_vertex("p2");
+    let m = graph.add_vertex("m");
+    let q1 = graph.add_vertex("q1");
+    let q2 = graph.add_vertex("q2");
+    graph.edges_mut().add_edge(p1, p2, ());
+    graph.edges_mut().add_edge(p2, m, ());
+    graph.edges_mut().add_edge(m, p1, ());
+    graph.edges_mut().add_edge(q1, q2, ());
+    graph.edges_mut().add_edge(q2, m, ());
+    graph.edges_mut().add_edge(m, q1, ());
+
+    // no single edge disconnects a bowtie, only its shared vertex does.
+    assert_eq!(Bridges.visit(&graph), Vec::new());
+    assert_eq!(ArticulationPoints.visit(&graph), vec![m]);
 }
