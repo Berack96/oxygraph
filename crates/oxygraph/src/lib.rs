@@ -26,11 +26,12 @@ pub mod graph_view {
 
 pub mod graph_visit {
     pub use super::visits::{
-        AStar, AllSimplePaths, ArticulationPoints, BellmanFord, Bfs, BiconnectedComponents,
-        BiconnectedEdges, Bipartite, Bipartition, BridgeEdges, Bridges, Components,
-        ConnectedComponents, CycleDetection, Dfs, Dijkstra, DijkstraReached, DijkstraReaching,
-        MinimumSpanningTree, MstEdges, MultiSourceBfs, MultiSourceDijkstra, Reachability, Reached,
-        Reaching, SccComponents, StronglyConnectedComponents, TopologicalSort, TransitiveClosure,
-        ViewVisit, VisitError, VisitResult,
+        AStar, AllSimplePaths, ArticulationPoints, BellmanFord, BetweennessCentrality, Bfs,
+        BiconnectedComponents, BiconnectedEdges, Bipartite, Bipartition, BridgeEdges, Bridges,
+        Centrality, Components, ConnectedComponents, CycleDetection, Dfs, Dijkstra,
+        DijkstraReached, DijkstraReaching, MinimumSpanningTree, MstEdges, MultiSourceBfs,
+        MultiSourceDijkstra, Reachability, Reached, Reaching, SccComponents,
+        StronglyConnectedComponents, TopologicalSort, TransitiveClosure, ViewVisit, VisitError,
+        VisitResult,
     };
 }

@@ -2,10 +2,10 @@ use oxygraph::GraphBuilder;
 use oxygraph::graph_edges::{AdjList, GraphEdgeStorage, GraphEdgeStorageDirected, Weighted};
 use oxygraph::graph_view::GraphView;
 use oxygraph::graph_visit::{
-    AStar, AllSimplePaths, ArticulationPoints, BellmanFord, Bfs, BiconnectedComponents, Bipartite,
-    Bridges, ConnectedComponents, CycleDetection, Dfs, Dijkstra, DijkstraReached,
-    MinimumSpanningTree, MultiSourceBfs, MultiSourceDijkstra, Reached, StronglyConnectedComponents,
-    TopologicalSort, TransitiveClosure, ViewVisit, VisitError,
+    AStar, AllSimplePaths, ArticulationPoints, BellmanFord, BetweennessCentrality, Bfs,
+    BiconnectedComponents, Bipartite, Bridges, ConnectedComponents, CycleDetection, Dfs, Dijkstra,
+    DijkstraReached, MinimumSpanningTree, MultiSourceBfs, MultiSourceDijkstra, Reached,
+    StronglyConnectedComponents, TopologicalSort, TransitiveClosure, ViewVisit, VisitError,
 };
 
 struct NoopVisitor;
@@ -607,6 +607,43 @@ fn cycle_detection_returns_none_on_a_dag() {
     graph.edges_mut().add_edge_directed(b, c, ());
 
     assert_eq!(CycleDetection.visit(&graph), None);
+}
+
+#[test]
+fn betweenness_centrality_ranks_the_middle_of_a_path_highest() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge(a, b, ());
+    graph.edges_mut().add_edge(b, c, ());
+
+    let scores = BetweennessCentrality.visit(&graph);
+    let score_of = |v| {
+        scores
+            .iter()
+            .find(|(id, _)| *id == v)
+            .map(|(_, s)| *s)
+            .unwrap()
+    };
+
+    assert_eq!(score_of(a), 0.0);
+    assert_eq!(score_of(c), 0.0);
+    assert_eq!(score_of(b), 2.0);
+}
+
+#[test]
+fn betweenness_centrality_of_a_triangle_is_zero_for_everyone() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge(a, b, ());
+    graph.edges_mut().add_edge(b, c, ());
+    graph.edges_mut().add_edge(c, a, ());
+
+    let scores = BetweennessCentrality.visit(&graph);
+    assert!(scores.iter().all(|(_, s)| *s == 0.0));
 }
 
 #[test]
