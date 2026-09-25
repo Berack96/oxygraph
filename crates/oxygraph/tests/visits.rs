@@ -4,7 +4,7 @@ use oxygraph::graph_view::GraphView;
 use oxygraph::graph_visit::{
     AStar, AllSimplePaths, ArticulationPoints, BellmanFord, BetweennessCentrality, Bfs,
     BiconnectedComponents, Bipartite, Bridges, ConnectedComponents, CycleDetection, Dfs, Dijkstra,
-    DijkstraReached, Eccentricity, EulerianTrail, MinimumSpanningTree, MultiSourceBfs,
+    DijkstraReached, Eccentricity, EulerianTrail, MaxFlow, MinimumSpanningTree, MultiSourceBfs,
     MultiSourceDijkstra, Reached, StronglyConnectedComponents, TopologicalSort, TransitiveClosure,
     ViewVisit, VisitError,
 };
@@ -608,6 +608,40 @@ fn cycle_detection_returns_none_on_a_dag() {
     graph.edges_mut().add_edge_directed(b, c, ());
 
     assert_eq!(CycleDetection.visit(&graph), None);
+}
+
+#[test]
+fn max_flow_computes_the_classic_diamond_example() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge_directed(a, b, Km(3.0));
+    graph.edges_mut().add_edge_directed(a, c, Km(2.0));
+    graph.edges_mut().add_edge_directed(b, d, Km(2.0));
+    graph.edges_mut().add_edge_directed(c, d, Km(3.0));
+
+    let (flow, min_cut) = MaxFlow::new(d).visit(&graph, a).unwrap();
+
+    assert_eq!(flow, 4.0);
+    assert_eq!(min_cut.len(), 2);
+    assert!(min_cut.contains(&(a, c)));
+    assert!(min_cut.contains(&(b, d)));
+}
+
+#[test]
+fn max_flow_is_zero_when_sink_is_unreachable() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge_directed(a, b, Km(5.0));
+
+    let (flow, min_cut) = MaxFlow::new(d).visit(&graph, a).unwrap();
+
+    assert_eq!(flow, 0.0);
+    assert!(min_cut.is_empty());
 }
 
 #[test]
