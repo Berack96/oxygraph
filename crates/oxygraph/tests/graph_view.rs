@@ -19,3 +19,24 @@ fn iterates_no_edges_from_an_empty_graph() {
 
     assert_eq!(view.edges().count(), 0);
 }
+
+#[test]
+fn ids_enumerates_every_vertex_in_order() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+
+    assert_eq!(graph.get_view().ids().collect::<Vec<_>>(), vec![a, b, c]);
+}
+
+#[test]
+fn ids_skips_vertices_filtered_out_of_the_view() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let _b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let view = graph.get_filtered_view(Some(|v: &&str| *v != "b"), None);
+
+    assert_eq!(view.ids().collect::<Vec<_>>(), vec![a, c]);
+}
