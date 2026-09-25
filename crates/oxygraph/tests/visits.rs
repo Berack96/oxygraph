@@ -3,8 +3,8 @@ use oxygraph::graph_edges::{AdjList, GraphEdgeStorage, GraphEdgeStorageDirected,
 use oxygraph::graph_view::GraphView;
 use oxygraph::graph_visit::{
     ArticulationPoints, Bfs, Bridges, ConnectedComponents, CycleDetection, Dfs, Dijkstra,
-    DijkstraReached, MultiSourceBfs, MultiSourceDijkstra, Reached, StronglyConnectedComponents,
-    TopologicalSort, ViewVisit, VisitError,
+    DijkstraReached, MinimumSpanningTree, MultiSourceBfs, MultiSourceDijkstra, Reached,
+    StronglyConnectedComponents, TopologicalSort, ViewVisit, VisitError,
 };
 
 struct NoopVisitor;
@@ -98,6 +98,7 @@ fn dfs_reports_missing_start_vertex() {
     assert_eq!(Dfs.visit(&graph, missing), Err(VisitError::VertexNotFound));
 }
 
+#[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Km(f64);
 impl Weighted for Km {
@@ -574,6 +575,49 @@ fn cycle_detection_returns_none_on_a_dag() {
     graph.edges_mut().add_edge_directed(b, c, ());
 
     assert_eq!(CycleDetection.visit(&graph), None);
+}
+
+#[test]
+fn minimum_spanning_tree_finds_the_cheapest_connecting_edges() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge(a, b, Km(1.0));
+    graph.edges_mut().add_edge(b, c, Km(2.0));
+    graph.edges_mut().add_edge(c, d, Km(3.0));
+    graph.edges_mut().add_edge(a, c, Km(4.0)); // would close a cycle, must be skipped
+    graph.edges_mut().add_edge(a, d, Km(10.0)); // would close a cycle, must be skipped
+
+    let (mst, total) = MinimumSpanningTree.visit(&graph);
+
+    assert_eq!(total, 6.0);
+    assert_eq!(mst.len(), 3);
+    let has_edge = |x, y| {
+        mst.iter()
+            .any(|&(f, t, _)| (f == x && t == y) || (f == y && t == x))
+    };
+    assert!(has_edge(a, b));
+    assert!(has_edge(b, c));
+    assert!(has_edge(c, d));
+}
+
+#[test]
+fn minimum_spanning_tree_builds_a_forest_over_disconnected_components() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    let _isolated = graph.add_vertex("isolated");
+    graph.edges_mut().add_edge(a, b, Km(1.0));
+    graph.edges_mut().add_edge(c, d, Km(2.0));
+
+    let (mst, total) = MinimumSpanningTree.visit(&graph);
+
+    assert_eq!(total, 3.0);
+    assert_eq!(mst.len(), 2);
 }
 
 #[test]
