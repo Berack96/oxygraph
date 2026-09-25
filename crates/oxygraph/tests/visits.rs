@@ -2,9 +2,9 @@ use oxygraph::GraphBuilder;
 use oxygraph::graph_edges::{AdjList, GraphEdgeStorage, GraphEdgeStorageDirected, Weighted};
 use oxygraph::graph_view::GraphView;
 use oxygraph::graph_visit::{
-    ArticulationPoints, Bfs, Bridges, ConnectedComponents, CycleDetection, Dfs, Dijkstra,
-    DijkstraReached, MinimumSpanningTree, MultiSourceBfs, MultiSourceDijkstra, Reached,
-    StronglyConnectedComponents, TopologicalSort, ViewVisit, VisitError,
+    ArticulationPoints, Bfs, BiconnectedComponents, Bridges, ConnectedComponents, CycleDetection,
+    Dfs, Dijkstra, DijkstraReached, MinimumSpanningTree, MultiSourceBfs, MultiSourceDijkstra,
+    Reached, StronglyConnectedComponents, TopologicalSort, ViewVisit, VisitError,
 };
 
 struct NoopVisitor;
@@ -461,6 +461,37 @@ fn bridges_and_articulation_points_ignore_a_self_loop() {
 
     assert_eq!(Bridges.visit(&graph), Vec::new());
     assert_eq!(ArticulationPoints.visit(&graph), Vec::new());
+}
+
+#[test]
+fn biconnected_components_splits_at_the_bridge() {
+    let (graph, [_a, _b, c, d, _e, _f]) = two_triangles_joined_by_a_bridge();
+
+    let mut components = BiconnectedComponents.visit(&graph);
+    components.sort_by_key(|component| component.len());
+
+    assert_eq!(components.len(), 3);
+    assert_eq!(components[0].len(), 1);
+    let (from, to) = components[0][0];
+    assert!((from == c && to == d) || (from == d && to == c));
+    assert_eq!(components[1].len(), 3);
+    assert_eq!(components[2].len(), 3);
+}
+
+#[test]
+fn biconnected_components_of_a_single_cycle_is_one_component() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge(a, b, ());
+    graph.edges_mut().add_edge(b, c, ());
+    graph.edges_mut().add_edge(c, a, ());
+
+    let components = BiconnectedComponents.visit(&graph);
+
+    assert_eq!(components.len(), 1);
+    assert_eq!(components[0].len(), 3);
 }
 
 #[test]

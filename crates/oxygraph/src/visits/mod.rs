@@ -8,6 +8,7 @@
 //! [`parents_of`](crate::edges::GraphEdgeStorageDirected::parents_of)).
 
 mod bfs;
+mod biconnected;
 mod bridges;
 mod connected_components;
 mod cycle;
@@ -20,6 +21,7 @@ mod scc;
 mod topological_sort;
 
 pub use bfs::Bfs;
+pub use biconnected::{BiconnectedComponents, BiconnectedEdges};
 pub use bridges::{ArticulationPoints, BridgeEdges, Bridges};
 pub use connected_components::{Components, ConnectedComponents};
 pub use cycle::CycleDetection;

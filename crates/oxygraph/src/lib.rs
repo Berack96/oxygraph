@@ -26,9 +26,10 @@ pub mod graph_view {
 
 pub mod graph_visit {
     pub use super::visits::{
-        ArticulationPoints, Bfs, BridgeEdges, Bridges, Components, ConnectedComponents,
-        CycleDetection, Dfs, Dijkstra, DijkstraReached, DijkstraReaching, MinimumSpanningTree,
-        MstEdges, MultiSourceBfs, MultiSourceDijkstra, Reached, Reaching, SccComponents,
-        StronglyConnectedComponents, TopologicalSort, ViewVisit, VisitError, VisitResult,
+        ArticulationPoints, Bfs, BiconnectedComponents, BiconnectedEdges, BridgeEdges, Bridges,
+        Components, ConnectedComponents, CycleDetection, Dfs, Dijkstra, DijkstraReached,
+        DijkstraReaching, MinimumSpanningTree, MstEdges, MultiSourceBfs, MultiSourceDijkstra,
+        Reached, Reaching, SccComponents, StronglyConnectedComponents, TopologicalSort, ViewVisit,
+        VisitError, VisitResult,
     };
 }
