@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::{
-    edges::{AdjList, AdjListFixed, GraphEdgeStorage},
+    edges::{AdjList, AdjListFixed, GraphEdgeStorage, MaybeSerde},
     graph::Graph,
     vertices::UnsignedId,
 };
@@ -9,14 +9,17 @@ use crate::{
 pub struct GraphBuilder<V: 'static, E: 'static, I = u32, S = AdjList<E, I>>
 where
     I: UnsignedId,
-    S: GraphEdgeStorage<E, I>,
+    S: GraphEdgeStorage<Edge = E, Id = I>,
 {
     vertices: Option<Vec<V>>,
     directed: bool,
     _marker: PhantomData<(V, E, I, S)>,
 }
 
-impl<V, E> GraphBuilder<V, E> {
+// MaybeSerde is intentionally crate-internal (see its doc comment); it only shapes what
+// E/I must satisfy, it isn't part of the public API surface.
+#[allow(private_bounds)]
+impl<V, E: MaybeSerde> GraphBuilder<V, E> {
     pub fn new() -> Self {
         Self {
             vertices: None,
@@ -26,16 +29,18 @@ impl<V, E> GraphBuilder<V, E> {
     }
 }
 
-impl<V, E> Default for GraphBuilder<V, E> {
+#[allow(private_bounds)]
+impl<V, E: MaybeSerde> Default for GraphBuilder<V, E> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<V, E, I, S> GraphBuilder<V, E, I, S>
+#[allow(private_bounds)]
+impl<V, E: MaybeSerde, I, S> GraphBuilder<V, E, I, S>
 where
-    I: UnsignedId,
-    S: GraphEdgeStorage<E, I>,
+    I: UnsignedId + MaybeSerde,
+    S: GraphEdgeStorage<Edge = E, Id = I>,
 {
     // Transizione da Dyn a Fixed usando const generics
     pub fn as_adjlist_fixed_max_degree<const N: usize>(
@@ -67,7 +72,7 @@ where
         self
     }
 
-    pub fn build(self) -> Graph<V, E, I, S> {
+    pub fn build(self) -> Graph<V, S> {
         let vertices = self.vertices.unwrap_or_default();
         let size = vertices.len();
         Graph::new_with(vertices, S::with_capacity(size))

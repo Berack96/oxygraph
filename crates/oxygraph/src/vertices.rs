@@ -2,6 +2,7 @@ use std::{fmt::Debug, hash::Hash, num::NonZero};
 
 use oxygraph_derive::serde_feature;
 
+#[serde_feature]
 pub trait UnsignedId: Debug + Copy + Eq + Hash {
     type NonZero: Debug + Copy + Eq + Hash;
     fn to_nz(v: usize) -> Self::NonZero;

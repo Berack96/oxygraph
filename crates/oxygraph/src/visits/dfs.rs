@@ -4,7 +4,7 @@
 use crate::{
     edges::GraphEdgeStorageDirected,
     graph::GraphView,
-    vertices::{UnsignedId, VertexId},
+    vertices::VertexId,
     visits::{Mark, VertexMarks, ViewVisit, VisitError, VisitResult},
 };
 
@@ -12,16 +12,12 @@ use crate::{
 #[derive(Debug, Clone, Copy)]
 pub struct Dfs;
 
-impl<V: 'static, E: 'static, I, S> ViewVisit<V, E, I, S> for Dfs
-where
-    I: UnsignedId,
-    S: GraphEdgeStorageDirected<E, I>,
-{
-    type Output = Vec<VertexId<I>>;
+impl<V: 'static, S: GraphEdgeStorageDirected> ViewVisit<V, S> for Dfs {
+    type Output = Vec<VertexId<S::Id>>;
 
-    fn visit<G>(&self, view: &G, start: VertexId<I>) -> VisitResult<Self::Output>
+    fn visit<G>(&self, view: &G, start: VertexId<S::Id>) -> VisitResult<Self::Output>
     where
-        G: GraphView<V, E, I, S>,
+        G: GraphView<V, S>,
     {
         if view.vertex(start).is_none() {
             return Err(VisitError::VertexNotFound);

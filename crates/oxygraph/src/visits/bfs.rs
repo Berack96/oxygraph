@@ -5,7 +5,7 @@ use std::collections::VecDeque;
 use crate::{
     edges::GraphEdgeStorage,
     graph::GraphView,
-    vertices::{UnsignedId, VertexId},
+    vertices::VertexId,
     visits::{Mark, VertexMarks, ViewVisit, VisitError, VisitResult},
 };
 
@@ -13,16 +13,12 @@ use crate::{
 #[derive(Debug, Clone, Copy)]
 pub struct Bfs;
 
-impl<V: 'static, E: 'static, I, S> ViewVisit<V, E, I, S> for Bfs
-where
-    I: UnsignedId,
-    S: GraphEdgeStorage<E, I>,
-{
-    type Output = Vec<VertexId<I>>;
+impl<V: 'static, S: GraphEdgeStorage> ViewVisit<V, S> for Bfs {
+    type Output = Vec<VertexId<S::Id>>;
 
-    fn visit<G>(&self, view: &G, start: VertexId<I>) -> VisitResult<Self::Output>
+    fn visit<G>(&self, view: &G, start: VertexId<S::Id>) -> VisitResult<Self::Output>
     where
-        G: GraphView<V, E, I, S>,
+        G: GraphView<V, S>,
     {
         if view.vertex(start).is_none() {
             return Err(VisitError::VertexNotFound);

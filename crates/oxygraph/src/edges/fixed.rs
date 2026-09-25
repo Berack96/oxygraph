@@ -1,11 +1,10 @@
-use oxygraph_derive::serde_feature;
-
 use crate::{
-    edges::{Edge, EdgeSimple, EdgeView, GraphEdgeStorage, GraphEdgeStorageDirected},
+    edges::{Edge, EdgeSimple, EdgeView, GraphEdgeStorage, GraphEdgeStorageDirected, MaybeSerde},
     vertices::{UnsignedId, VertexId},
 };
 
-#[serde_feature]
+// Not `#[serde_feature]`: `[Option<EdgeSimple<E, I>>; N]` has a const-generic size N, and
+// serde's derive can't generate (de)serialize impls for an array whose size is generic.
 pub struct AdjListFixed<E: 'static, I: UnsignedId, const N: usize> {
     edges: Vec<[Option<EdgeSimple<E, I>>; N]>,
 }
@@ -21,7 +20,12 @@ impl<E: 'static, I: UnsignedId, const N: usize> Default for AdjListFixed<E, I, N
     }
 }
 
-impl<E: 'static, I: UnsignedId, const N: usize> GraphEdgeStorage<E, I> for AdjListFixed<E, I, N> {
+impl<E: 'static + MaybeSerde, I: UnsignedId + MaybeSerde, const N: usize> GraphEdgeStorage
+    for AdjListFixed<E, I, N>
+{
+    type Edge = E;
+    type Id = I;
+
     fn of(&self, id: VertexId<I>) -> impl Iterator<Item = EdgeView<'_, E, I>> {
         let vert_id = id.id();
         self.edges
@@ -132,7 +136,7 @@ impl<E: 'static, I: UnsignedId, const N: usize> GraphEdgeStorage<E, I> for AdjLi
     }
 }
 
-impl<E: 'static, I: UnsignedId, const N: usize> GraphEdgeStorageDirected<E, I>
+impl<E: 'static + MaybeSerde, I: UnsignedId + MaybeSerde, const N: usize> GraphEdgeStorageDirected
     for AdjListFixed<E, I, N>
 {
     fn children_of(&self, id: VertexId<I>) -> impl Iterator<Item = EdgeView<'_, E, I>> {
