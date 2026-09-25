@@ -2,10 +2,10 @@ use oxygraph::GraphBuilder;
 use oxygraph::graph_edges::{AdjList, GraphEdgeStorage, GraphEdgeStorageDirected, Weighted};
 use oxygraph::graph_view::GraphView;
 use oxygraph::graph_visit::{
-    AStar, AllSimplePaths, ArticulationPoints, BellmanFord, Bfs, BiconnectedComponents, Bridges,
-    ConnectedComponents, CycleDetection, Dfs, Dijkstra, DijkstraReached, MinimumSpanningTree,
-    MultiSourceBfs, MultiSourceDijkstra, Reached, StronglyConnectedComponents, TopologicalSort,
-    TransitiveClosure, ViewVisit, VisitError,
+    AStar, AllSimplePaths, ArticulationPoints, BellmanFord, Bfs, BiconnectedComponents, Bipartite,
+    Bridges, ConnectedComponents, CycleDetection, Dfs, Dijkstra, DijkstraReached,
+    MinimumSpanningTree, MultiSourceBfs, MultiSourceDijkstra, Reached, StronglyConnectedComponents,
+    TopologicalSort, TransitiveClosure, ViewVisit, VisitError,
 };
 
 struct NoopVisitor;
@@ -607,6 +607,40 @@ fn cycle_detection_returns_none_on_a_dag() {
     graph.edges_mut().add_edge_directed(b, c, ());
 
     assert_eq!(CycleDetection.visit(&graph), None);
+}
+
+#[test]
+fn bipartite_finds_the_two_classes_of_an_even_cycle() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge(a, b, ());
+    graph.edges_mut().add_edge(b, c, ());
+    graph.edges_mut().add_edge(c, d, ());
+    graph.edges_mut().add_edge(d, a, ());
+
+    let (class_a, class_b) = Bipartite.visit(&graph).unwrap();
+
+    assert_eq!(class_a.len(), 2);
+    assert_eq!(class_b.len(), 2);
+    // a and c are opposite corners of the 4-cycle, always in the same class as each other.
+    assert_eq!(class_a.contains(&a), class_a.contains(&c));
+    assert_ne!(class_a.contains(&a), class_a.contains(&b));
+}
+
+#[test]
+fn bipartite_returns_none_for_an_odd_cycle() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge(a, b, ());
+    graph.edges_mut().add_edge(b, c, ());
+    graph.edges_mut().add_edge(c, a, ());
+
+    assert_eq!(Bipartite.visit(&graph), None);
 }
 
 #[test]
