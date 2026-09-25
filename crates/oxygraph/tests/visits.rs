@@ -94,6 +94,7 @@ fn dfs_reports_missing_start_vertex() {
     assert_eq!(Dfs.visit(&graph, missing), Err(VisitError::VertexNotFound));
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Km(f64);
 impl Weighted for Km {
     fn weight(&self) -> f64 {
