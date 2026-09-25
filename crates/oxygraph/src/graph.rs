@@ -9,6 +9,11 @@ pub trait GraphView<V: 'static, S: GraphEdgeStorage> {
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool;
     fn edges(&self) -> &S;
+
+    /// Ids of every vertex the view exposes, i.e. exactly those for which
+    /// [`vertex`](Self::vertex) returns `Some`. Used by whole-graph visits (connected
+    /// components, SCC, ...) that need to enumerate vertices rather than start from one.
+    fn ids(&self) -> impl Iterator<Item = VertexId<S::Id>>;
 }
 
 #[serde_feature]
@@ -62,5 +67,9 @@ impl<V, S: GraphEdgeStorage> GraphView<V, S> for Graph<V, S> {
 
     fn edges(&self) -> &S {
         &self.edge_storage
+    }
+
+    fn ids(&self) -> impl Iterator<Item = VertexId<S::Id>> {
+        (0..self.vertices.len()).map(VertexId::new)
     }
 }

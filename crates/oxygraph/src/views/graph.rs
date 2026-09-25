@@ -55,4 +55,10 @@ impl<'a, V: 'static, S: GraphEdgeStorage> GraphView<V, EdgeFilteredView<'a, S>>
     fn edges(&self) -> &EdgeFilteredView<'a, S> {
         &self.edges
     }
+
+    fn ids(&self) -> impl Iterator<Item = VertexId<S::Id>> {
+        (0..self.graph.vertices.len())
+            .map(VertexId::new)
+            .filter(move |&id| self.vertex(id).is_some())
+    }
 }
