@@ -4,8 +4,9 @@ use oxygraph::graph_view::GraphView;
 use oxygraph::graph_visit::{
     AStar, AllSimplePaths, ArticulationPoints, BellmanFord, BetweennessCentrality, Bfs,
     BiconnectedComponents, Bipartite, Bridges, ConnectedComponents, CycleDetection, Dfs, Dijkstra,
-    DijkstraReached, MinimumSpanningTree, MultiSourceBfs, MultiSourceDijkstra, Reached,
-    StronglyConnectedComponents, TopologicalSort, TransitiveClosure, ViewVisit, VisitError,
+    DijkstraReached, Eccentricity, MinimumSpanningTree, MultiSourceBfs, MultiSourceDijkstra,
+    Reached, StronglyConnectedComponents, TopologicalSort, TransitiveClosure, ViewVisit,
+    VisitError,
 };
 
 struct NoopVisitor;
@@ -607,6 +608,56 @@ fn cycle_detection_returns_none_on_a_dag() {
     graph.edges_mut().add_edge_directed(b, c, ());
 
     assert_eq!(CycleDetection.visit(&graph), None);
+}
+
+#[test]
+fn eccentricity_and_diameter_of_a_path() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge(a, b, ());
+    graph.edges_mut().add_edge(b, c, ());
+    graph.edges_mut().add_edge(c, d, ());
+
+    let (eccentricities, diameter) = Eccentricity.visit(&graph);
+    let ecc_of = |v| {
+        eccentricities
+            .iter()
+            .find(|(id, _)| *id == v)
+            .map(|(_, e)| *e)
+            .unwrap()
+    };
+
+    assert_eq!(ecc_of(a), 3);
+    assert_eq!(ecc_of(b), 2);
+    assert_eq!(ecc_of(c), 2);
+    assert_eq!(ecc_of(d), 3);
+    assert_eq!(diameter, Some(3));
+}
+
+#[test]
+fn eccentricity_ignores_unreachable_vertices() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let isolated = graph.add_vertex("isolated");
+    graph.edges_mut().add_edge(a, b, ());
+
+    let (eccentricities, diameter) = Eccentricity.visit(&graph);
+    let ecc_of = |v| {
+        eccentricities
+            .iter()
+            .find(|(id, _)| *id == v)
+            .map(|(_, e)| *e)
+            .unwrap()
+    };
+
+    assert_eq!(ecc_of(a), 1);
+    assert_eq!(ecc_of(b), 1);
+    assert_eq!(ecc_of(isolated), 0);
+    assert_eq!(diameter, Some(1));
 }
 
 #[test]
