@@ -1,7 +1,10 @@
 use oxygraph::GraphBuilder;
 use oxygraph::graph_edges::{AdjList, GraphEdgeStorage, GraphEdgeStorageDirected, Weighted};
 use oxygraph::graph_view::GraphView;
-use oxygraph::graph_visit::{Bfs, Dfs, Dijkstra, MultiSourceBfs, Reached, ViewVisit, VisitError};
+use oxygraph::graph_visit::{
+    Bfs, Dfs, Dijkstra, DijkstraReached, MultiSourceBfs, MultiSourceDijkstra, Reached, ViewVisit,
+    VisitError,
+};
 
 struct NoopVisitor;
 
@@ -222,6 +225,84 @@ fn multi_source_bfs_reports_missing_source_vertex() {
 
     assert_eq!(
         MultiSourceBfs.visit(&graph, [a, missing]),
+        Err(VisitError::VertexNotFound)
+    );
+}
+
+#[test]
+fn multi_source_dijkstra_attributes_each_vertex_to_the_cheapest_source() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let s1 = graph.add_vertex("s1");
+    let s2 = graph.add_vertex("s2");
+    let x = graph.add_vertex("x");
+    let y = graph.add_vertex("y");
+    graph.edges_mut().add_edge_directed(s1, x, Km(5.0));
+    graph.edges_mut().add_edge_directed(s2, x, Km(1.0));
+    graph.edges_mut().add_edge_directed(s1, y, Km(2.0));
+    graph.edges_mut().add_edge_directed(s2, y, Km(2.0));
+
+    let reached = MultiSourceDijkstra.visit(&graph, [s1, s2]).unwrap();
+    let of = |v| reached.iter().find(|(id, _)| *id == v).map(|(_, r)| *r);
+
+    assert_eq!(
+        of(s1),
+        Some(DijkstraReached {
+            distance: 0.0,
+            source: s1
+        })
+    );
+    assert_eq!(
+        of(s2),
+        Some(DijkstraReached {
+            distance: 0.0,
+            source: s2
+        })
+    );
+    // s2 reaches x more cheaply (1.0 < 5.0), despite s1 being first in input order.
+    assert_eq!(
+        of(x),
+        Some(DijkstraReached {
+            distance: 1.0,
+            source: s2
+        })
+    );
+    // y is equidistant from both sources: ties are broken by input order, s1 first.
+    assert_eq!(
+        of(y),
+        Some(DijkstraReached {
+            distance: 2.0,
+            source: s1
+        })
+    );
+}
+
+#[test]
+fn multi_source_dijkstra_omits_unreached_vertices() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let _isolated = graph.add_vertex("isolated");
+
+    let reached = MultiSourceDijkstra.visit(&graph, [a]).unwrap();
+    assert_eq!(
+        reached,
+        vec![(
+            a,
+            DijkstraReached {
+                distance: 0.0,
+                source: a
+            }
+        )]
+    );
+}
+
+#[test]
+fn multi_source_dijkstra_reports_missing_source_vertex() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let missing = oxygraph::VertexId::new(5);
+
+    assert_eq!(
+        MultiSourceDijkstra.visit(&graph, [a, missing]),
         Err(VisitError::VertexNotFound)
     );
 }
