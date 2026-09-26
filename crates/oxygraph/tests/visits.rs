@@ -527,6 +527,43 @@ fn bridges_and_articulation_points_of_an_empty_graph_are_empty() {
 }
 
 #[test]
+fn bridges_and_articulation_points_do_not_interfere_across_disconnected_components() {
+    let (mut graph, [_a, _b, c, d, _e, _f]) = two_triangles_joined_by_a_bridge();
+    let g = graph.add_vertex("g");
+    let h = graph.add_vertex("h");
+    let i = graph.add_vertex("i");
+    let j = graph.add_vertex("j");
+    let k = graph.add_vertex("k");
+    let l = graph.add_vertex("l");
+    graph.edges_mut().add_edge(g, h, ());
+    graph.edges_mut().add_edge(h, i, ());
+    graph.edges_mut().add_edge(i, g, ());
+    graph.edges_mut().add_edge(j, k, ());
+    graph.edges_mut().add_edge(k, l, ());
+    graph.edges_mut().add_edge(l, j, ());
+    graph.edges_mut().add_edge(i, j, ());
+
+    // Two independent bridge structures in one graph: the shared DFS timer used across
+    // `for root in view.ids()` roots must not let one component's discovery order corrupt
+    // the other's low-link comparisons.
+    let bridges = Bridges.visit(&graph);
+    let mut points = ArticulationPoints.visit(&graph);
+    points.sort_by_key(|v| v.id());
+    let mut expected_points = [c, d, i, j];
+    expected_points.sort_by_key(|v| v.id());
+
+    let has_bridge = |x, y| {
+        bridges
+            .iter()
+            .any(|&(from, to)| (from == x && to == y) || (from == y && to == x))
+    };
+    assert_eq!(bridges.len(), 2);
+    assert!(has_bridge(c, d));
+    assert!(has_bridge(i, j));
+    assert_eq!(points, expected_points);
+}
+
+#[test]
 fn connected_components_only_follows_outgoing_edges_on_a_one_way_graph() {
     let mut graph = GraphBuilder::<&str, ()>::new().build();
     let a = graph.add_vertex("a");
