@@ -733,8 +733,8 @@ fn topological_sort_ignores_an_edge_from_a_vertex_excluded_by_the_filter() {
     graph.edges_mut().add_edge_directed(w, x, ());
     let view = graph.get_filtered_view(Some(|v: &&str| *v != "w"), None);
 
-    // w's edge to x would otherwise count towards x's in-degree without w ever being
-    // dequeued to decrement it, since w is excluded from the view.
+    // w is excluded from the view, so its edge to x doesn't count: x has no in-view
+    // predecessor and is free to sort on its own.
     assert_eq!(TopologicalSort.visit(&view), Some(vec![x]));
 }
 
@@ -820,8 +820,8 @@ fn max_flow_min_cut_excludes_an_edge_to_a_vertex_outside_the_filtered_view() {
 
     let (flow, min_cut) = MaxFlow::new(t).visit(&view, s).unwrap();
 
-    // Without the endpoint check, (a, x) would end up in the cut too: a is reachable and x
-    // is not, even though x isn't part of the view at all.
+    // x is excluded from the view, so a's edge to it doesn't count towards the flow or the
+    // cut: only a's edge to t (capacity 3) limits how much can flow from s to t.
     assert_eq!(flow, 3.0);
     assert_eq!(min_cut, vec![(a, t)]);
 }
@@ -885,8 +885,8 @@ fn eulerian_trail_ignores_edges_touching_a_vertex_excluded_by_the_filter() {
     graph.edges_mut().add_edge_directed(a, x, ());
     let view = graph.get_filtered_view(Some(|v: &&str| *v != "x"), None);
 
-    // a's second edge (to x) would otherwise unbalance a's degree and make x part of the
-    // connectivity check and the trail, even though x is excluded from the view.
+    // x is excluded from the view, so a's edge to it doesn't count: the view exposes only
+    // the balanced a-b edge, giving a one-edge trail.
     assert_eq!(EulerianTrail.visit(&view), Some(vec![a, b]));
 }
 
