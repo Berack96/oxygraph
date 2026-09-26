@@ -17,9 +17,16 @@ impl TopologicalSort {
         &self,
         view: &G,
     ) -> Option<Vec<VertexId<S::Id>>> {
+        // Computed from `children_of` on each in-view vertex, rather than `count_incoming`
+        // directly: the latter isn't vertex-filtered, so it would count arcs from predecessors
+        // a `GraphFilteredView` excludes, which then never arrive to decrement it to 0.
         let mut in_degree: VertexMarks<usize> = VertexMarks::new(0);
         for vertex in view.ids() {
-            in_degree.set(vertex, view.edges().count_incoming(vertex));
+            for edge in view.edges().children_of(vertex) {
+                if view.vertex(edge.to).is_some() {
+                    in_degree.set(edge.to, *in_degree.get(edge.to) + 1);
+                }
+            }
         }
 
         let mut queue: VecDeque<VertexId<S::Id>> =
@@ -29,6 +36,9 @@ impl TopologicalSort {
         while let Some(vertex) = queue.pop_front() {
             order.push(vertex);
             for edge in view.edges().children_of(vertex) {
+                if view.vertex(edge.to).is_none() {
+                    continue;
+                }
                 let remaining = *in_degree.get(edge.to) - 1;
                 in_degree.set(edge.to, remaining);
                 if remaining == 0 {
