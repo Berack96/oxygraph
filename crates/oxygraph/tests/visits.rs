@@ -98,6 +98,37 @@ fn dfs_reports_missing_start_vertex() {
     assert_eq!(Dfs.visit(&graph, missing), Err(VisitError::VertexNotFound));
 }
 
+#[test]
+fn dfs_ignores_disconnected_vertices() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let _c = graph.add_vertex("c");
+    graph.edges_mut().add_edge_directed(a, b, ());
+
+    let order = Dfs.visit(&graph, a).unwrap();
+    assert_eq!(order, vec![a, b]);
+}
+
+#[test]
+fn dfs_handles_self_loop() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    graph.edges_mut().add_edge_directed(a, a, ());
+
+    let order = Dfs.visit(&graph, a).unwrap();
+    assert_eq!(order, vec![a]);
+}
+
+#[test]
+fn bfs_reports_missing_start_vertex_when_excluded_by_a_filter() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let view = graph.get_filtered_view(Some(|v: &&str| *v != "a"), None);
+
+    assert_eq!(Bfs.visit(&view, a), Err(VisitError::VertexNotFound));
+}
+
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Km(f64);
 impl Weighted for Km {
