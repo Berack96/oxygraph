@@ -1,6 +1,7 @@
 //! Betweenness centrality, available for any graph, directed or undirected: Brandes'
-//! algorithm run over unweighted shortest paths, reading [`GraphEdgeStorage::of`] as the
-//! adjacency to expand.
+//! algorithm run over unweighted shortest paths, reading [`GraphEdgeStorage::of`] as an
+//! adjacency between simple (no parallel edges) vertex pairs, same caveat as
+//! [`Bridges`](super::Bridges).
 
 use std::collections::VecDeque;
 
@@ -46,9 +47,7 @@ impl BetweennessCentrality {
                     }
                     if *distance.get(w) == Some(dv + 1) {
                         sigma.set(w, *sigma.get(w) + sigma_v);
-                        let mut preds = predecessors.get(w).clone();
-                        preds.push(v);
-                        predecessors.set(w, preds);
+                        predecessors.get_mut(w).push(v);
                     }
                 }
             }
