@@ -1,9 +1,7 @@
 //! Transitive closure, bound to directed graphs: the full reachability relation, computed by
 //! running a breadth-first visit from every vertex via
-//! [`GraphEdgeStorageDirected::children_of`].
-//!
-//! O(V * (V + E)): fine for answering many "can X reach Y" queries once built, expensive to
-//! build on a large graph.
+//! [`GraphEdgeStorageDirected::children_of`], O(V * (V + E)) in total, fine for answering many
+//! "can X reach Y" queries once built but expensive to build on a large graph.
 
 use std::collections::VecDeque;
 

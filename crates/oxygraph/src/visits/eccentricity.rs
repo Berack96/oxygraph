@@ -1,8 +1,7 @@
 //! Eccentricity and diameter, available for any graph, directed or undirected: a breadth-first
-//! visit from every vertex via [`GraphEdgeStorage::of`].
-//!
-//! An unreachable vertex contributes no distance: on a disconnected graph, each vertex's
-//! eccentricity is the farthest distance within its own reach, not infinity.
+//! visit from every vertex via [`GraphEdgeStorage::of`], where an unreachable vertex
+//! contributes no distance, so on a disconnected graph each vertex's eccentricity is the
+//! farthest distance within its own reach, not infinity.
 
 use std::collections::VecDeque;
 

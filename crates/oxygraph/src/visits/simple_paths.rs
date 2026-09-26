@@ -1,10 +1,8 @@
 //! All simple paths visit, bound to directed graphs: enumerates every simple path (no
 //! repeated vertex) from a start vertex to `target`, via
-//! [`GraphEdgeStorageDirected::children_of`].
-//!
-//! Exponential in the worst case: a dense or highly connected graph can have exponentially
-//! many simple paths between two vertices. Fine for small or sparse graphs, not meant for
-//! large dense ones.
+//! [`GraphEdgeStorageDirected::children_of`]; exponential in the worst case, since a dense or
+//! highly connected graph can have exponentially many simple paths between two vertices, so
+//! it's fine for small or sparse graphs but not meant for large dense ones.
 
 use crate::{
     edges::GraphEdgeStorageDirected,
