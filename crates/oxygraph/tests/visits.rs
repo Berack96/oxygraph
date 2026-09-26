@@ -129,6 +129,21 @@ fn bfs_reports_missing_start_vertex_when_excluded_by_a_filter() {
     assert_eq!(Bfs.visit(&view, a), Err(VisitError::VertexNotFound));
 }
 
+#[test]
+fn bfs_does_not_reach_a_vertex_excluded_by_the_filter() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let x = graph.add_vertex("x");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(a, x, ());
+    let view = graph.get_filtered_view(Some(|v: &&str| *v != "x"), None);
+
+    let order = Bfs.visit(&view, a).unwrap();
+
+    assert_eq!(order, vec![a, b]);
+}
+
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Km(f64);
 impl Weighted for Km {

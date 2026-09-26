@@ -60,6 +60,17 @@ fn is_empty_is_true_when_the_filter_excludes_every_vertex() {
 }
 
 #[test]
+fn edges_of_a_vertex_exclude_arcs_reaching_a_vertex_excluded_by_the_filter() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let x = graph.add_vertex("x");
+    graph.edges_mut().add_edge(a, x, ());
+    let view = graph.get_filtered_view(Some(|v: &&str| *v != "x"), None);
+
+    assert_eq!(view.edges().of(a).count(), 0);
+}
+
+#[test]
 fn is_empty_is_false_when_the_filter_keeps_at_least_one_vertex() {
     let mut graph = GraphBuilder::<&str, ()>::new().build();
     graph.add_vertex("a");
