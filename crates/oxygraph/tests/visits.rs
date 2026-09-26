@@ -578,6 +578,32 @@ fn connected_components_only_follows_outgoing_edges_on_a_one_way_graph() {
 }
 
 #[test]
+fn multi_source_bfs_keeps_a_source_attributed_to_itself_when_reachable_from_another_source() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let s1 = graph.add_vertex("s1");
+    let s2 = graph.add_vertex("s2");
+    graph.edges_mut().add_edge_directed(s2, s1, ());
+
+    let reached = MultiSourceBfs.visit(&graph, [s1, s2]).unwrap();
+    let of = |v| reached.iter().find(|(id, _)| *id == v).map(|(_, r)| *r);
+
+    assert_eq!(
+        of(s1),
+        Some(Reached {
+            distance: 0,
+            source: s1
+        })
+    );
+    assert_eq!(
+        of(s2),
+        Some(Reached {
+            distance: 0,
+            source: s2
+        })
+    );
+}
+
+#[test]
 fn multi_source_bfs_ignores_duplicate_sources() {
     let mut graph = GraphBuilder::<&str, ()>::new().build();
     let a = graph.add_vertex("a");
@@ -604,6 +630,32 @@ fn multi_source_bfs_ignores_duplicate_sources() {
                 }
             )
         ]
+    );
+}
+
+#[test]
+fn multi_source_dijkstra_keeps_a_source_attributed_to_itself_when_reachable_more_cheaply() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let s1 = graph.add_vertex("s1");
+    let s2 = graph.add_vertex("s2");
+    graph.edges_mut().add_edge_directed(s2, s1, Km(0.001));
+
+    let reached = MultiSourceDijkstra.visit(&graph, [s1, s2]).unwrap();
+    let of = |v| reached.iter().find(|(id, _)| *id == v).map(|(_, r)| *r);
+
+    assert_eq!(
+        of(s1),
+        Some(DijkstraReached {
+            distance: 0.0,
+            source: s1
+        })
+    );
+    assert_eq!(
+        of(s2),
+        Some(DijkstraReached {
+            distance: 0.0,
+            source: s2
+        })
     );
 }
 
