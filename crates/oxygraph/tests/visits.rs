@@ -98,6 +98,52 @@ fn dfs_reports_missing_start_vertex() {
     assert_eq!(Dfs.visit(&graph, missing), Err(VisitError::VertexNotFound));
 }
 
+#[test]
+fn dfs_ignores_disconnected_vertices() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let _c = graph.add_vertex("c");
+    graph.edges_mut().add_edge_directed(a, b, ());
+
+    let order = Dfs.visit(&graph, a).unwrap();
+    assert_eq!(order, vec![a, b]);
+}
+
+#[test]
+fn dfs_handles_self_loop() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    graph.edges_mut().add_edge_directed(a, a, ());
+
+    let order = Dfs.visit(&graph, a).unwrap();
+    assert_eq!(order, vec![a]);
+}
+
+#[test]
+fn bfs_reports_missing_start_vertex_when_excluded_by_a_filter() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let view = graph.get_filtered_view(Some(|v: &&str| *v != "a"), None);
+
+    assert_eq!(Bfs.visit(&view, a), Err(VisitError::VertexNotFound));
+}
+
+#[test]
+fn bfs_does_not_reach_a_vertex_excluded_by_the_filter() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let x = graph.add_vertex("x");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(a, x, ());
+    let view = graph.get_filtered_view(Some(|v: &&str| *v != "x"), None);
+
+    let order = Bfs.visit(&view, a).unwrap();
+
+    assert_eq!(order, vec![a, b]);
+}
+
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Km(f64);
 impl Weighted for Km {
@@ -367,6 +413,31 @@ fn scc_of_an_empty_graph_is_empty() {
     );
 }
 
+#[test]
+fn scc_of_a_single_isolated_vertex() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+
+    assert_eq!(StronglyConnectedComponents.visit(&graph), vec![vec![a]]);
+}
+
+#[test]
+fn scc_groups_a_self_loop_into_its_own_component() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    graph.edges_mut().add_edge_directed(a, a, ());
+    graph.edges_mut().add_edge_directed(a, b, ());
+
+    let mut components = StronglyConnectedComponents.visit(&graph);
+    for component in &mut components {
+        component.sort_by_key(|v| v.id());
+    }
+    components.sort_by_key(|component| component[0].id());
+
+    assert_eq!(components, vec![vec![a], vec![b]]);
+}
+
 /// Two triangles {a, b, c} and {d, e, f} joined by a single edge c-d: that edge is the only
 /// bridge, and its two endpoints are the only articulation points.
 #[allow(clippy::type_complexity)]
@@ -471,6 +542,43 @@ fn bridges_and_articulation_points_of_an_empty_graph_are_empty() {
 }
 
 #[test]
+fn bridges_and_articulation_points_do_not_interfere_across_disconnected_components() {
+    let (mut graph, [_a, _b, c, d, _e, _f]) = two_triangles_joined_by_a_bridge();
+    let g = graph.add_vertex("g");
+    let h = graph.add_vertex("h");
+    let i = graph.add_vertex("i");
+    let j = graph.add_vertex("j");
+    let k = graph.add_vertex("k");
+    let l = graph.add_vertex("l");
+    graph.edges_mut().add_edge(g, h, ());
+    graph.edges_mut().add_edge(h, i, ());
+    graph.edges_mut().add_edge(i, g, ());
+    graph.edges_mut().add_edge(j, k, ());
+    graph.edges_mut().add_edge(k, l, ());
+    graph.edges_mut().add_edge(l, j, ());
+    graph.edges_mut().add_edge(i, j, ());
+
+    // Two independent bridge structures in one graph: the shared DFS timer used across
+    // `for root in view.ids()` roots must not let one component's discovery order corrupt
+    // the other's low-link comparisons.
+    let bridges = Bridges.visit(&graph);
+    let mut points = ArticulationPoints.visit(&graph);
+    points.sort_by_key(|v| v.id());
+    let mut expected_points = [c, d, i, j];
+    expected_points.sort_by_key(|v| v.id());
+
+    let has_bridge = |x, y| {
+        bridges
+            .iter()
+            .any(|&(from, to)| (from == x && to == y) || (from == y && to == x))
+    };
+    assert_eq!(bridges.len(), 2);
+    assert!(has_bridge(c, d));
+    assert!(has_bridge(i, j));
+    assert_eq!(points, expected_points);
+}
+
+#[test]
 fn connected_components_only_follows_outgoing_edges_on_a_one_way_graph() {
     let mut graph = GraphBuilder::<&str, ()>::new().build();
     let a = graph.add_vertex("a");
@@ -482,6 +590,32 @@ fn connected_components_only_follows_outgoing_edges_on_a_one_way_graph() {
     // a has no outgoing edge, so it's claimed as its own component before b's outgoing edge
     // to a can merge them: the documented one-way caveat, not a real pair of islands.
     assert_eq!(components, vec![vec![a], vec![b]]);
+}
+
+#[test]
+fn multi_source_bfs_keeps_a_source_attributed_to_itself_when_reachable_from_another_source() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let s1 = graph.add_vertex("s1");
+    let s2 = graph.add_vertex("s2");
+    graph.edges_mut().add_edge_directed(s2, s1, ());
+
+    let reached = MultiSourceBfs.visit(&graph, [s1, s2]).unwrap();
+    let of = |v| reached.iter().find(|(id, _)| *id == v).map(|(_, r)| *r);
+
+    assert_eq!(
+        of(s1),
+        Some(Reached {
+            distance: 0,
+            source: s1
+        })
+    );
+    assert_eq!(
+        of(s2),
+        Some(Reached {
+            distance: 0,
+            source: s2
+        })
+    );
 }
 
 #[test]
@@ -511,6 +645,32 @@ fn multi_source_bfs_ignores_duplicate_sources() {
                 }
             )
         ]
+    );
+}
+
+#[test]
+fn multi_source_dijkstra_keeps_a_source_attributed_to_itself_when_reachable_more_cheaply() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let s1 = graph.add_vertex("s1");
+    let s2 = graph.add_vertex("s2");
+    graph.edges_mut().add_edge_directed(s2, s1, Km(0.001));
+
+    let reached = MultiSourceDijkstra.visit(&graph, [s1, s2]).unwrap();
+    let of = |v| reached.iter().find(|(id, _)| *id == v).map(|(_, r)| *r);
+
+    assert_eq!(
+        of(s1),
+        Some(DijkstraReached {
+            distance: 0.0,
+            source: s1
+        })
+    );
+    assert_eq!(
+        of(s2),
+        Some(DijkstraReached {
+            distance: 0.0,
+            source: s2
+        })
     );
 }
 
