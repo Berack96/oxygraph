@@ -7,7 +7,7 @@ use crate::{
     edges::{GraphEdgeStorage, Weighted},
     graph::GraphView,
     vertices::{UnsignedId, VertexId},
-    visits::{VertexMarks, ViewVisit, VisitError, VisitResult},
+    visits::{VertexMarks, ViewVisit, VisitError, VisitResult, reconstruct_path},
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -119,12 +119,6 @@ where
             return Ok(None);
         };
 
-        let mut path = vec![self.target];
-        while let Some(prev) = *previous.get(*path.last().unwrap()) {
-            path.push(prev);
-        }
-        path.reverse();
-
-        Ok(Some((path, total)))
+        Ok(Some((reconstruct_path(self.target, &previous), total)))
     }
 }
