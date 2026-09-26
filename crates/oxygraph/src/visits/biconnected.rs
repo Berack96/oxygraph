@@ -67,7 +67,13 @@ impl BiconnectedComponents {
                 let next = neighbors[index];
                 index += 1;
 
-                if Some(next) == parent {
+                if next == vertex {
+                    // A self-loop lies on no cycle with any other edge: it forms its own
+                    // singleton component, same as a bridge, rather than being dropped because
+                    // it's trivially "already discovered" (it's its own ancestor).
+                    components.push(vec![(vertex, vertex)]);
+                    stack.push((vertex, parent, neighbors, index));
+                } else if Some(next) == parent {
                     stack.push((vertex, parent, neighbors, index));
                 } else if let Some(next_disc) = *disc.get(next) {
                     // Only a genuine back edge to an ancestor lowers `low`; an already-visited
