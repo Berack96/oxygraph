@@ -1,11 +1,10 @@
-//! Eulerian trail, bound to directed graphs: Hierholzer's algorithm over the directed arcs as
-//! stored, via [`GraphEdgeStorageDirected::children_of`]/[`parents_of`](GraphEdgeStorageDirected::parents_of).
-//!
-//! Treats every stored arc as one distinct edge to traverse: on a graph built with
-//! [`add_edge`](crate::edges::GraphEdgeStorage::add_edge), an undirected edge is stored as a
-//! mirrored pair of arcs and walked once in each direction, as two separate edges. For a walk
-//! that visits every undirected edge exactly once, build the graph one direction at a time via
-//! [`add_edge_directed`](GraphEdgeStorageDirected::add_edge_directed) instead.
+//! Eulerian trail, bound to directed graphs: Hierholzer's algorithm walks the directed arcs as
+//! stored, via [`GraphEdgeStorageDirected::children_of`]/[`parents_of`](GraphEdgeStorageDirected::parents_of),
+//! treating every stored arc as one distinct edge, so an undirected edge added via
+//! [`add_edge`](crate::edges::GraphEdgeStorage::add_edge) (stored as a mirrored pair) is walked
+//! once each way; build the graph one direction at a time via
+//! [`add_edge_directed`](GraphEdgeStorageDirected::add_edge_directed) instead for a trail over
+//! each undirected edge exactly once.
 
 use std::collections::VecDeque;
 
@@ -24,11 +23,27 @@ impl EulerianTrail {
         &self,
         view: &G,
     ) -> Option<Vec<VertexId<S::Id>>> {
+        // Counted via `children_of`/`parents_of` filtered to in-view endpoints, rather than
+        // `count_outgoing`/`count_incoming` directly: those aren't vertex-filtered, so an arc to
+        // or from a vertex a `GraphFilteredView` excludes would otherwise skew the degree
+        // balance and let the trail below walk into an excluded vertex.
         let mut out_degree: VertexMarks<u32> = VertexMarks::new(0);
         let mut in_degree: VertexMarks<u32> = VertexMarks::new(0);
         for v in view.ids() {
-            out_degree.set(v, view.edges().count_outgoing(v) as u32);
-            in_degree.set(v, view.edges().count_incoming(v) as u32);
+            out_degree.set(
+                v,
+                view.edges()
+                    .children_of(v)
+                    .filter(|e| view.vertex(e.to).is_some())
+                    .count() as u32,
+            );
+            in_degree.set(
+                v,
+                view.edges()
+                    .parents_of(v)
+                    .filter(|e| view.vertex(e.from).is_some())
+                    .count() as u32,
+            );
         }
 
         let with_edges: Vec<VertexId<S::Id>> = view
@@ -77,9 +92,18 @@ fn is_weakly_connected<V: 'static, S: GraphEdgeStorageDirected, G: GraphView<V, 
     let mut visited_count = 1usize;
 
     while let Some(v) = queue.pop_front() {
-        let mut neighbors: Vec<VertexId<S::Id>> =
-            view.edges().children_of(v).map(|e| e.to).collect();
-        neighbors.extend(view.edges().parents_of(v).map(|e| e.from));
+        let mut neighbors: Vec<VertexId<S::Id>> = view
+            .edges()
+            .children_of(v)
+            .map(|e| e.to)
+            .filter(|&to| view.vertex(to).is_some())
+            .collect();
+        neighbors.extend(
+            view.edges()
+                .parents_of(v)
+                .map(|e| e.from)
+                .filter(|&from| view.vertex(from).is_some()),
+        );
         for w in neighbors {
             if !*visited.get(w) {
                 visited.set(w, true);
@@ -100,16 +124,21 @@ fn hierholzer<V: 'static, S: GraphEdgeStorageDirected, G: GraphView<V, S>>(
 ) -> Vec<VertexId<S::Id>> {
     let mut adjacency: VertexMarks<Vec<VertexId<S::Id>>> = VertexMarks::new(Vec::new());
     for v in view.ids() {
-        adjacency.set(v, view.edges().children_of(v).map(|e| e.to).collect());
+        adjacency.set(
+            v,
+            view.edges()
+                .children_of(v)
+                .map(|e| e.to)
+                .filter(|&to| view.vertex(to).is_some())
+                .collect(),
+        );
     }
 
     let mut stack = vec![start];
     let mut trail = Vec::new();
 
     while let Some(&v) = stack.last() {
-        let mut neighbors = adjacency.get(v).clone();
-        if let Some(w) = neighbors.pop() {
-            adjacency.set(v, neighbors);
+        if let Some(w) = adjacency.get_mut(v).pop() {
             stack.push(w);
         } else {
             trail.push(stack.pop().expect("the stack is non-empty in this branch"));
