@@ -8,7 +8,7 @@ use crate::{
     edges::{GraphEdgeStorageDirected, Weighted},
     graph::GraphView,
     vertices::{UnsignedId, VertexId},
-    visits::{VertexMarks, ViewVisit, VisitError, VisitResult},
+    visits::{VertexMarks, ViewVisit, VisitError, VisitResult, reconstruct_path},
 };
 
 /// One entry per min-cut edge: an original arc from the source side of the final residual
@@ -84,11 +84,7 @@ where
                 break visited;
             }
 
-            let mut path = vec![self.sink];
-            while let Some(prev) = *previous.get(*path.last().unwrap()) {
-                path.push(prev);
-            }
-            path.reverse();
+            let path = reconstruct_path(self.sink, &previous);
 
             let bottleneck = path
                 .windows(2)
@@ -102,9 +98,14 @@ where
             max_flow += bottleneck;
         };
 
+        // `get_all` isn't vertex-filtered, so it's checked against `view.vertex` here too: an
+        // arc from a reachable in-view vertex to one a `GraphFilteredView` excludes would
+        // otherwise be reported as a cut edge, even though its far endpoint isn't part of the
+        // view at all.
         let min_cut: MinCutEdges<S::Id> = view
             .edges()
             .get_all()
+            .filter(|edge| view.vertex(edge.from).is_some() && view.vertex(edge.to).is_some())
             .filter(|edge| *final_reachable.get(edge.from) && !*final_reachable.get(edge.to))
             .map(|edge| (edge.from, edge.to))
             .collect();
