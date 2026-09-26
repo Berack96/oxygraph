@@ -6,7 +6,7 @@ use crate::{
     edges::{GraphEdgeStorage, Weighted},
     graph::GraphView,
     vertices::{UnsignedId, VertexId},
-    visits::{VertexMarks, ViewVisit, VisitError, VisitResult},
+    visits::{VertexMarks, ViewVisit, VisitError, VisitResult, reconstruct_path},
 };
 
 /// Shortest path from a start vertex to `target`: the vertex sequence and its total weight.
@@ -47,9 +47,11 @@ where
         let mut previous: VertexMarks<Option<VertexId<S::Id>>> = VertexMarks::new(None);
         distance.set(start, Some(0.0));
 
-        // V - 1 rounds relax every edge; a shortest path visits each vertex at most once, so
-        // it never needs more hops than that to settle.
-        for _ in 1..view.len() {
+        // `edges.len()` rounds always suffice: a shortest (simple) path uses each edge at most
+        // once, so it never needs more relaxation rounds than there are edges to settle. Bounded
+        // by `edges.len()` rather than `view.len()`, since `edges` isn't vertex-filtered and can
+        // reach further than the view's own vertex count on a `GraphFilteredView`.
+        for _ in 0..edges.len() {
             let mut changed = false;
             for &(from, to, weight) in &edges {
                 if relax(&mut distance, &mut previous, from, to, weight) {
@@ -73,13 +75,7 @@ where
             return Ok(None);
         };
 
-        let mut path = vec![self.target];
-        while let Some(prev) = *previous.get(*path.last().unwrap()) {
-            path.push(prev);
-        }
-        path.reverse();
-
-        Ok(Some((path, total)))
+        Ok(Some((reconstruct_path(self.target, &previous), total)))
     }
 }
 
