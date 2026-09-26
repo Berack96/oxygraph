@@ -110,4 +110,26 @@ impl<M: Clone> VertexMarks<M> {
         }
         self.marks[idx] = mark;
     }
+
+    pub fn get_mut<I: UnsignedId>(&mut self, id: VertexId<I>) -> &mut M {
+        let idx = id.id();
+        if idx >= self.marks.len() {
+            self.marks.resize(idx + 1, self.default.clone());
+        }
+        &mut self.marks[idx]
+    }
+}
+
+/// Rebuilds the vertex sequence from `target` back to its start, by walking the `previous`
+/// pointers a shortest-path visit set while relaxing edges, then reversing them into order.
+pub(crate) fn reconstruct_path<I: UnsignedId>(
+    target: VertexId<I>,
+    previous: &VertexMarks<Option<VertexId<I>>>,
+) -> Vec<VertexId<I>> {
+    let mut path = vec![target];
+    while let Some(prev) = *previous.get(*path.last().unwrap()) {
+        path.push(prev);
+    }
+    path.reverse();
+    path
 }
