@@ -497,6 +497,21 @@ fn biconnected_components_of_a_single_cycle_is_one_component() {
 }
 
 #[test]
+fn biconnected_components_reports_a_self_loop_as_its_own_singleton() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    graph.edges_mut().add_edge(a, b, ());
+    graph.edges_mut().add_edge(a, a, ());
+
+    let components = BiconnectedComponents.visit(&graph);
+
+    assert_eq!(components.len(), 2);
+    assert!(components.contains(&vec![(a, a)]));
+    assert!(components.contains(&vec![(a, b)]) || components.contains(&vec![(b, a)]));
+}
+
+#[test]
 fn bridges_and_articulation_points_of_an_empty_graph_are_empty() {
     let graph = GraphBuilder::<&str, ()>::new().build();
 
@@ -577,6 +592,19 @@ fn topological_sort_returns_none_on_a_cycle() {
 }
 
 #[test]
+fn topological_sort_ignores_an_edge_from_a_vertex_excluded_by_the_filter() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let w = graph.add_vertex("w");
+    let x = graph.add_vertex("x");
+    graph.edges_mut().add_edge_directed(w, x, ());
+    let view = graph.get_filtered_view(Some(|v: &&str| *v != "w"), None);
+
+    // w's edge to x would otherwise count towards x's in-degree without w ever being
+    // dequeued to decrement it, since w is excluded from the view.
+    assert_eq!(TopologicalSort.visit(&view), Some(vec![x]));
+}
+
+#[test]
 fn cycle_detection_finds_a_cycle() {
     let mut graph = GraphBuilder::<&str, ()>::new().build();
     let a = graph.add_vertex("a");
@@ -645,6 +673,26 @@ fn max_flow_is_zero_when_sink_is_unreachable() {
 }
 
 #[test]
+fn max_flow_min_cut_excludes_an_edge_to_a_vertex_outside_the_filtered_view() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let s = graph.add_vertex("s");
+    let a = graph.add_vertex("a");
+    let t = graph.add_vertex("t");
+    let x = graph.add_vertex("x");
+    graph.edges_mut().add_edge_directed(s, a, Km(5.0));
+    graph.edges_mut().add_edge_directed(a, t, Km(3.0));
+    graph.edges_mut().add_edge_directed(a, x, Km(10.0));
+    let view = graph.get_filtered_view(Some(|v: &&str| *v != "x"), None);
+
+    let (flow, min_cut) = MaxFlow::new(t).visit(&view, s).unwrap();
+
+    // Without the endpoint check, (a, x) would end up in the cut too: a is reachable and x
+    // is not, even though x isn't part of the view at all.
+    assert_eq!(flow, 3.0);
+    assert_eq!(min_cut, vec![(a, t)]);
+}
+
+#[test]
 fn eulerian_trail_finds_a_circuit() {
     let mut graph = GraphBuilder::<&str, ()>::new().build();
     let a = graph.add_vertex("a");
@@ -691,6 +739,21 @@ fn eulerian_trail_returns_none_for_a_disconnected_graph() {
     graph.edges_mut().add_edge_directed(c, d, ());
 
     assert_eq!(EulerianTrail.visit(&graph), None);
+}
+
+#[test]
+fn eulerian_trail_ignores_edges_touching_a_vertex_excluded_by_the_filter() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let x = graph.add_vertex("x");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(a, x, ());
+    let view = graph.get_filtered_view(Some(|v: &&str| *v != "x"), None);
+
+    // a's second edge (to x) would otherwise unbalance a's degree and make x part of the
+    // connectivity check and the trail, even though x is excluded from the view.
+    assert_eq!(EulerianTrail.visit(&view), Some(vec![a, b]));
 }
 
 #[test]
@@ -956,6 +1019,26 @@ fn bellman_ford_reports_a_reachable_negative_cycle() {
 }
 
 #[test]
+fn bellman_ford_does_not_report_a_false_negative_cycle_on_a_filtered_view() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let s = graph.add_vertex("s");
+    let m1 = graph.add_vertex("m1");
+    let m2 = graph.add_vertex("m2");
+    let t = graph.add_vertex("t");
+    graph.edges_mut().add_edge_directed(s, m1, Km(1.0));
+    graph.edges_mut().add_edge_directed(m1, m2, Km(1.0));
+    graph.edges_mut().add_edge_directed(m2, t, Km(1.0));
+    let view = graph.get_filtered_view(Some(|v: &&str| *v == "s" || *v == "t"), None);
+
+    // The view's own vertex count is 2 (s, t), fewer than the 3 hops the path actually needs
+    // to relax through m1 and m2, which aren't vertex-filtered out of `get_all`.
+    let (path, total) = BellmanFord::new(t).visit(&view, s).unwrap().unwrap();
+
+    assert_eq!(path, vec![s, m1, m2, t]);
+    assert_eq!(total, 3.0);
+}
+
+#[test]
 fn minimum_spanning_tree_finds_the_cheapest_connecting_edges() {
     let mut graph = GraphBuilder::<&str, Km>::new().build();
     let a = graph.add_vertex("a");
@@ -993,6 +1076,26 @@ fn minimum_spanning_tree_builds_a_forest_over_disconnected_components() {
     graph.edges_mut().add_edge(c, d, Km(2.0));
 
     let (mst, total) = MinimumSpanningTree.visit(&graph);
+
+    assert_eq!(total, 3.0);
+    assert_eq!(mst.len(), 2);
+}
+
+#[test]
+fn minimum_spanning_tree_handles_a_filtered_view_with_gaps_in_vertex_ids() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let _b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    let e = graph.add_vertex("e");
+    graph.edges_mut().add_edge(a, c, Km(1.0));
+    graph.edges_mut().add_edge(d, e, Km(2.0));
+    let view = graph.get_filtered_view(Some(|v: &&str| *v != "b"), None);
+
+    // The view's own vertex count (4) is smaller than e's raw id (4), since b is excluded:
+    // a union-find sized to `view.len()` would index out of bounds on e.
+    let (mst, total) = MinimumSpanningTree.visit(&view);
 
     assert_eq!(total, 3.0);
     assert_eq!(mst.len(), 2);
