@@ -7,7 +7,8 @@
 use crate::{
     edges::{GraphEdgeStorage, Weighted},
     graph::GraphView,
-    vertices::VertexId,
+    vertices::{UnsignedId, VertexId},
+    visits::VertexMarks,
 };
 
 /// One entry per selected edge, plus its weight.
@@ -34,7 +35,7 @@ impl MinimumSpanningTree {
             .collect();
         edges.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap_or(std::cmp::Ordering::Equal));
 
-        let mut parent: Vec<usize> = (0..view.len()).collect();
+        let mut parent: VertexMarks<Option<VertexId<S::Id>>> = VertexMarks::new(None);
         let mut mst = Vec::new();
         let mut total = 0.0;
 
@@ -42,10 +43,10 @@ impl MinimumSpanningTree {
             if from == to {
                 continue;
             }
-            let root_from = find(&mut parent, from.id());
-            let root_to = find(&mut parent, to.id());
+            let root_from = find(&mut parent, from);
+            let root_to = find(&mut parent, to);
             if root_from != root_to {
-                parent[root_from] = root_to;
+                parent.set(root_from, Some(root_to));
                 mst.push((from, to, weight));
                 total += weight;
             }
@@ -55,17 +56,24 @@ impl MinimumSpanningTree {
     }
 }
 
-/// Union-find lookup with path compression, iterative to keep the depth bounded regardless
-/// of graph size.
-fn find(parent: &mut [usize], x: usize) -> usize {
+/// Union-find lookup with path compression, iterative to keep the depth bounded regardless of
+/// graph size. Keyed by raw vertex id via [`VertexMarks`] rather than a `Vec` sized to
+/// `view.len()`, since ids from a [`GraphFilteredView`](crate::views::GraphFilteredView) aren't
+/// contiguous in `0..view.len()`. A vertex with no parent recorded is its own root.
+fn find<I: UnsignedId>(
+    parent: &mut VertexMarks<Option<VertexId<I>>>,
+    x: VertexId<I>,
+) -> VertexId<I> {
     let mut root = x;
-    while parent[root] != root {
-        root = parent[root];
+    while let Some(next) = *parent.get(root) {
+        root = next;
     }
     let mut current = x;
-    while parent[current] != root {
-        let next = parent[current];
-        parent[current] = root;
+    while current != root {
+        let next = parent
+            .get(current)
+            .expect("non-root node has a parent link");
+        parent.set(current, Some(root));
         current = next;
     }
     root
