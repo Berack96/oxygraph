@@ -45,11 +45,7 @@ impl<'a, V: 'static, S: GraphEdgeStorage> GraphView<V, EdgeFilteredView<'a, S>>
     }
 
     fn is_empty(&self) -> bool {
-        !self
-            .graph
-            .vertices
-            .iter()
-            .any(|v| self.filter_vertices.is_some_and(|filter| !filter(v)))
+        self.len() == 0
     }
 
     fn edges(&self) -> &EdgeFilteredView<'a, S> {

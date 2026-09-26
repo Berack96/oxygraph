@@ -40,3 +40,31 @@ fn ids_skips_vertices_filtered_out_of_the_view() {
 
     assert_eq!(view.ids().collect::<Vec<_>>(), vec![a, c]);
 }
+
+#[test]
+fn is_empty_is_false_for_a_view_with_no_filter() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    graph.add_vertex("a");
+    let view = graph.get_filtered_view(None, None);
+
+    assert!(!view.is_empty());
+}
+
+#[test]
+fn is_empty_is_true_when_the_filter_excludes_every_vertex() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    graph.add_vertex("a");
+    let view = graph.get_filtered_view(Some(|_: &&str| false), None);
+
+    assert!(view.is_empty());
+}
+
+#[test]
+fn is_empty_is_false_when_the_filter_keeps_at_least_one_vertex() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    graph.add_vertex("a");
+    graph.add_vertex("b");
+    let view = graph.get_filtered_view(Some(|v: &&str| *v == "a"), None);
+
+    assert!(!view.is_empty());
+}
