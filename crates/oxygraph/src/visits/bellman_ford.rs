@@ -48,9 +48,7 @@ where
         distance.set(start, Some(0.0));
 
         // `edges.len()` rounds always suffice: a shortest (simple) path uses each edge at most
-        // once, so it never needs more relaxation rounds than there are edges to settle. Bounded
-        // by `edges.len()` rather than `view.len()`, since `edges` isn't vertex-filtered and can
-        // reach further than the view's own vertex count on a `GraphFilteredView`.
+        // once, so it never needs more relaxation rounds than there are edges to settle.
         for _ in 0..edges.len() {
             let mut changed = false;
             for &(from, to, weight) in &edges {

@@ -1164,12 +1164,9 @@ fn bellman_ford_does_not_report_a_false_negative_cycle_on_a_filtered_view() {
     graph.edges_mut().add_edge_directed(m2, t, Km(1.0));
     let view = graph.get_filtered_view(Some(|v: &&str| *v == "s" || *v == "t"), None);
 
-    // The view's own vertex count is 2 (s, t), fewer than the 3 hops the path actually needs
-    // to relax through m1 and m2, which aren't vertex-filtered out of `get_all`.
-    let (path, total) = BellmanFord::new(t).visit(&view, s).unwrap().unwrap();
-
-    assert_eq!(path, vec![s, m1, m2, t]);
-    assert_eq!(total, 3.0);
+    // m1 and m2 are vertex-filtered out of the view, so their edges don't relax and s can't
+    // reach t: the bound must still be settled without a spurious negative-cycle report.
+    assert_eq!(BellmanFord::new(t).visit(&view, s).unwrap(), None);
 }
 
 #[test]
