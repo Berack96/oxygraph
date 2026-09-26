@@ -398,6 +398,31 @@ fn scc_of_an_empty_graph_is_empty() {
     );
 }
 
+#[test]
+fn scc_of_a_single_isolated_vertex() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+
+    assert_eq!(StronglyConnectedComponents.visit(&graph), vec![vec![a]]);
+}
+
+#[test]
+fn scc_groups_a_self_loop_into_its_own_component() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    graph.edges_mut().add_edge_directed(a, a, ());
+    graph.edges_mut().add_edge_directed(a, b, ());
+
+    let mut components = StronglyConnectedComponents.visit(&graph);
+    for component in &mut components {
+        component.sort_by_key(|v| v.id());
+    }
+    components.sort_by_key(|component| component[0].id());
+
+    assert_eq!(components, vec![vec![a], vec![b]]);
+}
+
 /// Two triangles {a, b, c} and {d, e, f} joined by a single edge c-d: that edge is the only
 /// bridge, and its two endpoints are the only articulation points.
 #[allow(clippy::type_complexity)]
