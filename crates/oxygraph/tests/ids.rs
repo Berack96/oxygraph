@@ -16,6 +16,17 @@ fn creates_the_highest_representable_vertex_id() {
 }
 
 #[test]
+fn orders_vertex_ids_by_their_dense_index() {
+    let first = VertexId::<u16>::new(0);
+    let second = VertexId::<u16>::new(1);
+    let second_again = VertexId::<u16>::new(1);
+
+    assert!(first < second);
+    assert!(second > first);
+    assert_eq!(second.cmp(&second_again), std::cmp::Ordering::Equal);
+}
+
+#[test]
 fn creates_edge_views() {
     let data = String::from("edge");
     let from = VertexId::<u32>::new(1);

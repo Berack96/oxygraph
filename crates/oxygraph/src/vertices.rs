@@ -4,7 +4,7 @@ use oxygraph_derive::serde_feature;
 
 #[serde_feature]
 pub trait UnsignedId: Debug + Copy + Eq + Hash {
-    type NonZero: Debug + Copy + Eq + Hash;
+    type NonZero: Debug + Copy + Eq + Hash + Ord;
     fn to_nz(v: usize) -> Self::NonZero;
     fn from_nz(nz: Self::NonZero) -> usize;
 }
@@ -39,5 +39,19 @@ impl<I: UnsignedId> VertexId<I> {
 
     pub fn id(&self) -> usize {
         I::from_nz(self.0)
+    }
+}
+
+// Not derived: `#[derive(PartialOrd, Ord)]` would bound `I`, not the `I::NonZero` field it
+// actually compares, and fail to compile: ordered by the same dense index `id()` returns.
+impl<I: UnsignedId> PartialOrd for VertexId<I> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<I: UnsignedId> Ord for VertexId<I> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0.cmp(&other.0)
     }
 }
