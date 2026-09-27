@@ -27,6 +27,18 @@ impl<V, E: MaybeSerde> GraphBuilder<V, E> {
     }
 }
 
+// `new()` generalized over `I`, for callers who need a narrower id type than the u32 default
+// (e.g. to match an existing u16 index) instead of the type inference `new()` relies on.
+#[allow(private_bounds)]
+impl<V, E: MaybeSerde, I: UnsignedId + MaybeSerde> GraphBuilder<V, E, I, AdjList<E, I>> {
+    pub fn new_with_id() -> Self {
+        Self {
+            vertices: None,
+            _marker: PhantomData,
+        }
+    }
+}
+
 #[allow(private_bounds)]
 impl<V, E: MaybeSerde> Default for GraphBuilder<V, E> {
     fn default() -> Self {

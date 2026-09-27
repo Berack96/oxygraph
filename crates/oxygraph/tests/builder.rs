@@ -34,6 +34,17 @@ mod test_builder {
     }
 
     #[test]
+    fn builds_with_a_narrower_id_type_via_new_with_id() {
+        let graph = GraphBuilder::<&str, f32, u16>::new_with_id()
+            .with_vertices(vec!["a", "b"])
+            .build();
+
+        assert!(graph.len() == 2);
+        let id: VertexId<u16> = VertexId::new(1);
+        assert!(graph.vertex(id).is_some());
+    }
+
+    #[test]
     fn builds_fixed_adjacency_list() {
         let graph = GraphBuilder::<String, f32>::new()
             .with_vertices(vec![
