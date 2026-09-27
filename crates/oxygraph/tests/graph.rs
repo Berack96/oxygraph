@@ -48,3 +48,18 @@ fn supports_fixed_storage() {
 
     assert_eq!(graph.vertex(vertex), Some(&String::from("fixed")));
 }
+
+#[test]
+fn clones_a_fixed_storage_graph_independently_of_the_original() {
+    let original = GraphBuilder::<String, ()>::new()
+        .as_adjlist_fixed_max_degree::<4>()
+        .with_vertices(vec![String::from("a")])
+        .build();
+    let vertex = VertexId::new(0);
+
+    let mut cloned = original.clone();
+    *cloned.vertex_mut(vertex).unwrap() = String::from("b");
+
+    assert_eq!(original.vertex(vertex), Some(&String::from("a")));
+    assert_eq!(cloned.vertex(vertex), Some(&String::from("b")));
+}

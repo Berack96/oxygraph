@@ -5,6 +5,7 @@ use crate::{
 
 // Not `#[serde_feature]`: `[Option<EdgeSimple<E, I>>; N]` has a const-generic size N, and
 // serde's derive can't generate (de)serialize impls for an array whose size is generic.
+#[derive(Clone)]
 pub struct AdjListFixed<E: 'static, I: UnsignedId, const N: usize> {
     edges: Vec<[Option<EdgeSimple<E, I>>; N]>,
     edge_count: usize,

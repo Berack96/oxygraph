@@ -16,6 +16,7 @@ pub trait GraphView<V: 'static, S: GraphEdgeStorage> {
     fn ids(&self) -> impl Iterator<Item = VertexId<S::Id>>;
 }
 
+#[derive(Clone)]
 #[serde_feature]
 pub struct Graph<V: 'static, S: GraphEdgeStorage> {
     pub(crate) vertices: Vec<V>,
