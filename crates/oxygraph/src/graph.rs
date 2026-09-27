@@ -39,6 +39,10 @@ impl<V, S: GraphEdgeStorage> Graph<V, S> {
         &mut self.edge_storage
     }
 
+    pub fn vertex_mut(&mut self, id: VertexId<S::Id>) -> Option<&mut V> {
+        self.vertices.get_mut(id.id())
+    }
+
     pub fn get_view(&self) -> GraphFilteredView<'_, V, S> {
         self.get_filtered_view(None, None)
     }

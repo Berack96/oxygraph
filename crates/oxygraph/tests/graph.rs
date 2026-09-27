@@ -15,10 +15,27 @@ fn adds_and_reads_vertices() {
 }
 
 #[test]
+fn mutates_a_vertex_in_place() {
+    let mut graph = GraphBuilder::<String, ()>::new().build();
+    let vertex = graph.add_vertex(String::from("before"));
+
+    *graph.vertex_mut(vertex).unwrap() = String::from("after");
+
+    assert_eq!(graph.vertex(vertex), Some(&String::from("after")));
+}
+
+#[test]
 fn returns_none_for_unknown_vertex() {
     let graph = GraphBuilder::<String, ()>::new().build();
 
     assert_eq!(graph.vertex(VertexId::new(0)), None);
+}
+
+#[test]
+fn vertex_mut_returns_none_for_unknown_vertex() {
+    let mut graph = GraphBuilder::<String, ()>::new().build();
+
+    assert_eq!(graph.vertex_mut(VertexId::new(0)), None);
 }
 
 #[test]
