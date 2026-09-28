@@ -91,3 +91,17 @@ fn filter_accepts_a_closure_capturing_runtime_state() {
 
     assert_eq!(view.ids().collect::<Vec<_>>(), vec![a, c]);
 }
+
+#[test]
+fn edge_filter_accepts_a_closure_capturing_runtime_state() {
+    let mut graph = GraphBuilder::<&str, i32>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge(a, b, 1);
+    graph.edges_mut().add_edge(a, c, 5);
+    let threshold = 2;
+    let view = graph.get_filtered_view(None, Some(Box::new(move |w: &i32| *w < threshold)));
+
+    assert_eq!(view.edges().of(a).count(), 1);
+}

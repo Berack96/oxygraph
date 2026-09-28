@@ -164,6 +164,21 @@ fn bfs_to_any_finds_the_path_to_the_closest_target() {
 }
 
 #[test]
+fn bfs_to_any_breaks_a_tie_between_equidistant_targets_by_discovery_order() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(a, c, ());
+
+    let (path, target) = BfsToAny::new([c, b]).visit(&graph, a).unwrap().unwrap();
+
+    assert_eq!(path, vec![a, b]);
+    assert_eq!(target, b);
+}
+
+#[test]
 fn bfs_to_any_returns_the_start_immediately_when_it_is_a_target() {
     let mut graph = GraphBuilder::<&str, ()>::new().build();
     let a = graph.add_vertex("a");

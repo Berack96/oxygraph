@@ -13,6 +13,7 @@ use crate::{
 /// Unweighted shortest path from a start vertex to the first of `targets` a breadth-first
 /// search reaches, along with which target that was. Unlike [`Dijkstra`](crate::visits::Dijkstra)
 /// or [`AStar`](crate::visits::AStar), it needs no `Weighted` edge data: every edge costs 1.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BfsToAny<I: UnsignedId> {
     targets: Vec<VertexId<I>>,
 }
