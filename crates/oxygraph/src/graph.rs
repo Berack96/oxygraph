@@ -16,6 +16,7 @@ pub trait GraphView<V: 'static, S: GraphEdgeStorage> {
     fn ids(&self) -> impl Iterator<Item = VertexId<S::Id>>;
 }
 
+#[derive(Clone)]
 #[serde_feature]
 pub struct Graph<V: 'static, S: GraphEdgeStorage> {
     pub(crate) vertices: Vec<V>,
@@ -37,6 +38,10 @@ impl<V, S: GraphEdgeStorage> Graph<V, S> {
 
     pub fn edges_mut(&mut self) -> &mut S {
         &mut self.edge_storage
+    }
+
+    pub fn vertex_mut(&mut self, id: VertexId<S::Id>) -> Option<&mut V> {
+        self.vertices.get_mut(id.id())
     }
 
     pub fn get_view(&self) -> GraphFilteredView<'_, V, S> {
