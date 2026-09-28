@@ -7,23 +7,49 @@
 //! exposes direction-aware navigation ([`children_of`](crate::edges::GraphEdgeStorageDirected::children_of) /
 //! [`parents_of`](crate::edges::GraphEdgeStorageDirected::parents_of)).
 
+mod astar;
+mod bellman_ford;
 mod bfs;
+mod biconnected;
+mod bipartite;
 mod bridges;
+mod centrality;
 mod connected_components;
+mod cycle;
 mod dfs;
 mod dijkstra;
+mod eccentricity;
+mod eulerian;
+mod max_flow;
+mod mst;
 mod multi_source_bfs;
 mod multi_source_dijkstra;
 mod scc;
+mod simple_paths;
+mod topological_sort;
+mod transitive_closure;
 
+pub use astar::AStar;
+pub use bellman_ford::BellmanFord;
 pub use bfs::Bfs;
+pub use biconnected::{BiconnectedComponents, BiconnectedEdges};
+pub use bipartite::{Bipartite, Bipartition};
 pub use bridges::{ArticulationPoints, BridgeEdges, Bridges};
+pub use centrality::{BetweennessCentrality, Centrality};
 pub use connected_components::{Components, ConnectedComponents};
+pub use cycle::CycleDetection;
 pub use dfs::Dfs;
 pub use dijkstra::Dijkstra;
+pub use eccentricity::{Eccentricities, Eccentricity};
+pub use eulerian::EulerianTrail;
+pub use max_flow::{MaxFlow, MinCutEdges};
+pub use mst::{MinimumSpanningTree, MstEdges};
 pub use multi_source_bfs::{MultiSourceBfs, Reached, Reaching};
 pub use multi_source_dijkstra::{DijkstraReached, DijkstraReaching, MultiSourceDijkstra};
 pub use scc::{SccComponents, StronglyConnectedComponents};
+pub use simple_paths::AllSimplePaths;
+pub use topological_sort::TopologicalSort;
+pub use transitive_closure::{Reachability, TransitiveClosure};
 
 use crate::{
     edges::GraphEdgeStorage,
@@ -46,6 +72,9 @@ pub type VisitResult<T> = Result<T, VisitError>;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VisitError {
     VertexNotFound,
+    /// A negative-weight cycle is reachable from the start vertex, so no shortest path is
+    /// well-defined: its cost can be driven arbitrarily low by looping through it.
+    NegativeCycle,
 }
 
 /// Visited/unvisited marker shared by the visits that don't need extra per-vertex data.
@@ -81,4 +110,26 @@ impl<M: Clone> VertexMarks<M> {
         }
         self.marks[idx] = mark;
     }
+
+    pub fn get_mut<I: UnsignedId>(&mut self, id: VertexId<I>) -> &mut M {
+        let idx = id.id();
+        if idx >= self.marks.len() {
+            self.marks.resize(idx + 1, self.default.clone());
+        }
+        &mut self.marks[idx]
+    }
+}
+
+/// Rebuilds the vertex sequence from `target` back to its start, by walking the `previous`
+/// pointers a shortest-path visit set while relaxing edges, then reversing them into order.
+pub(crate) fn reconstruct_path<I: UnsignedId>(
+    target: VertexId<I>,
+    previous: &VertexMarks<Option<VertexId<I>>>,
+) -> Vec<VertexId<I>> {
+    let mut path = vec![target];
+    while let Some(prev) = *previous.get(*path.last().unwrap()) {
+        path.push(prev);
+    }
+    path.reverse();
+    path
 }

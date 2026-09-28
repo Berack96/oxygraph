@@ -2,9 +2,11 @@ use oxygraph::GraphBuilder;
 use oxygraph::graph_edges::{AdjList, GraphEdgeStorage, GraphEdgeStorageDirected, Weighted};
 use oxygraph::graph_view::GraphView;
 use oxygraph::graph_visit::{
-    ArticulationPoints, Bfs, Bridges, ConnectedComponents, Dfs, Dijkstra, DijkstraReached,
-    MultiSourceBfs, MultiSourceDijkstra, Reached, StronglyConnectedComponents, ViewVisit,
-    VisitError,
+    AStar, AllSimplePaths, ArticulationPoints, BellmanFord, BetweennessCentrality, Bfs,
+    BiconnectedComponents, Bipartite, Bridges, ConnectedComponents, CycleDetection, Dfs, Dijkstra,
+    DijkstraReached, Eccentricity, EulerianTrail, MaxFlow, MinimumSpanningTree, MultiSourceBfs,
+    MultiSourceDijkstra, Reached, StronglyConnectedComponents, TopologicalSort, TransitiveClosure,
+    ViewVisit, VisitError,
 };
 
 struct NoopVisitor;
@@ -144,6 +146,7 @@ fn bfs_does_not_reach_a_vertex_excluded_by_the_filter() {
     assert_eq!(order, vec![a, b]);
 }
 
+#[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Km(f64);
 impl Weighted for Km {
@@ -534,6 +537,52 @@ fn bridges_and_articulation_points_ignore_a_self_loop() {
 }
 
 #[test]
+fn biconnected_components_splits_at_the_bridge() {
+    let (graph, [_a, _b, c, d, _e, _f]) = two_triangles_joined_by_a_bridge();
+
+    let mut components = BiconnectedComponents.visit(&graph);
+    components.sort_by_key(|component| component.len());
+
+    assert_eq!(components.len(), 3);
+    assert_eq!(components[0].len(), 1);
+    let (from, to) = components[0][0];
+    assert!((from == c && to == d) || (from == d && to == c));
+    assert_eq!(components[1].len(), 3);
+    assert_eq!(components[2].len(), 3);
+}
+
+#[test]
+fn biconnected_components_of_a_single_cycle_is_one_component() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge(a, b, ());
+    graph.edges_mut().add_edge(b, c, ());
+    graph.edges_mut().add_edge(c, a, ());
+
+    let components = BiconnectedComponents.visit(&graph);
+
+    assert_eq!(components.len(), 1);
+    assert_eq!(components[0].len(), 3);
+}
+
+#[test]
+fn biconnected_components_reports_a_self_loop_as_its_own_singleton() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    graph.edges_mut().add_edge(a, b, ());
+    graph.edges_mut().add_edge(a, a, ());
+
+    let components = BiconnectedComponents.visit(&graph);
+
+    assert_eq!(components.len(), 2);
+    assert!(components.contains(&vec![(a, a)]));
+    assert!(components.contains(&vec![(a, b)]) || components.contains(&vec![(b, a)]));
+}
+
+#[test]
 fn bridges_and_articulation_points_of_an_empty_graph_are_empty() {
     let graph = GraphBuilder::<&str, ()>::new().build();
 
@@ -646,6 +695,541 @@ fn multi_source_bfs_ignores_duplicate_sources() {
             )
         ]
     );
+}
+
+#[test]
+fn topological_sort_orders_dependencies_before_dependents() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(a, c, ());
+    graph.edges_mut().add_edge_directed(b, c, ());
+
+    let order = TopologicalSort.visit(&graph).unwrap();
+
+    let position = |v| order.iter().position(|&id| id == v).unwrap();
+    assert!(position(a) < position(b));
+    assert!(position(b) < position(c));
+}
+
+#[test]
+fn topological_sort_returns_none_on_a_cycle() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(b, a, ());
+
+    assert_eq!(TopologicalSort.visit(&graph), None);
+}
+
+#[test]
+fn topological_sort_ignores_an_edge_from_a_vertex_excluded_by_the_filter() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let w = graph.add_vertex("w");
+    let x = graph.add_vertex("x");
+    graph.edges_mut().add_edge_directed(w, x, ());
+    let view = graph.get_filtered_view(Some(|v: &&str| *v != "w"), None);
+
+    // w is excluded from the view, so its edge to x doesn't count: x has no in-view
+    // predecessor and is free to sort on its own.
+    assert_eq!(TopologicalSort.visit(&view), Some(vec![x]));
+}
+
+#[test]
+fn cycle_detection_finds_a_cycle() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(b, c, ());
+    graph.edges_mut().add_edge_directed(c, a, ());
+
+    let cycle = CycleDetection.visit(&graph).unwrap();
+
+    // The cycle starts wherever the DFS re-encounters an ancestor, but the three
+    // vertices must appear in their cyclic order starting from that point.
+    let position = |v| cycle.iter().position(|&id| id == v).unwrap();
+    assert_eq!(cycle.len(), 3);
+    let start = position(a);
+    assert_eq!(cycle[(start + 1) % 3], b);
+    assert_eq!(cycle[(start + 2) % 3], c);
+}
+
+#[test]
+fn cycle_detection_returns_none_on_a_dag() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(a, c, ());
+    graph.edges_mut().add_edge_directed(b, c, ());
+
+    assert_eq!(CycleDetection.visit(&graph), None);
+}
+
+#[test]
+fn max_flow_computes_the_classic_diamond_example() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge_directed(a, b, Km(3.0));
+    graph.edges_mut().add_edge_directed(a, c, Km(2.0));
+    graph.edges_mut().add_edge_directed(b, d, Km(2.0));
+    graph.edges_mut().add_edge_directed(c, d, Km(3.0));
+
+    let (flow, min_cut) = MaxFlow::new(d).visit(&graph, a).unwrap();
+
+    assert_eq!(flow, 4.0);
+    assert_eq!(min_cut.len(), 2);
+    assert!(min_cut.contains(&(a, c)));
+    assert!(min_cut.contains(&(b, d)));
+}
+
+#[test]
+fn max_flow_is_zero_when_sink_is_unreachable() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge_directed(a, b, Km(5.0));
+
+    let (flow, min_cut) = MaxFlow::new(d).visit(&graph, a).unwrap();
+
+    assert_eq!(flow, 0.0);
+    assert!(min_cut.is_empty());
+}
+
+#[test]
+fn max_flow_min_cut_excludes_an_edge_to_a_vertex_outside_the_filtered_view() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let s = graph.add_vertex("s");
+    let a = graph.add_vertex("a");
+    let t = graph.add_vertex("t");
+    let x = graph.add_vertex("x");
+    graph.edges_mut().add_edge_directed(s, a, Km(5.0));
+    graph.edges_mut().add_edge_directed(a, t, Km(3.0));
+    graph.edges_mut().add_edge_directed(a, x, Km(10.0));
+    let view = graph.get_filtered_view(Some(|v: &&str| *v != "x"), None);
+
+    let (flow, min_cut) = MaxFlow::new(t).visit(&view, s).unwrap();
+
+    // x is excluded from the view, so a's edge to it doesn't count towards the flow or the
+    // cut: only a's edge to t (capacity 3) limits how much can flow from s to t.
+    assert_eq!(flow, 3.0);
+    assert_eq!(min_cut, vec![(a, t)]);
+}
+
+#[test]
+fn eulerian_trail_finds_a_circuit() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(b, c, ());
+    graph.edges_mut().add_edge_directed(c, a, ());
+
+    let trail = EulerianTrail.visit(&graph).unwrap();
+
+    assert_eq!(trail, vec![a, b, c, a]);
+}
+
+#[test]
+fn eulerian_trail_finds_an_open_path_between_the_two_unbalanced_vertices() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(b, c, ());
+    graph.edges_mut().add_edge_directed(c, a, ());
+    graph.edges_mut().add_edge_directed(a, d, ());
+
+    let trail = EulerianTrail.visit(&graph).unwrap();
+
+    // Starts at the vertex with one extra outgoing edge (a) and ends at the one with one
+    // extra incoming edge (d), using each of the 4 edges exactly once.
+    assert_eq!(trail.first(), Some(&a));
+    assert_eq!(trail.last(), Some(&d));
+    assert_eq!(trail.len(), 5);
+}
+
+#[test]
+fn eulerian_trail_returns_none_for_a_disconnected_graph() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(c, d, ());
+
+    assert_eq!(EulerianTrail.visit(&graph), None);
+}
+
+#[test]
+fn eulerian_trail_ignores_edges_touching_a_vertex_excluded_by_the_filter() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let x = graph.add_vertex("x");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(a, x, ());
+    let view = graph.get_filtered_view(Some(|v: &&str| *v != "x"), None);
+
+    // x is excluded from the view, so a's edge to it doesn't count: the view exposes only
+    // the balanced a-b edge, giving a one-edge trail.
+    assert_eq!(EulerianTrail.visit(&view), Some(vec![a, b]));
+}
+
+#[test]
+fn eccentricity_and_diameter_of_a_path() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge(a, b, ());
+    graph.edges_mut().add_edge(b, c, ());
+    graph.edges_mut().add_edge(c, d, ());
+
+    let (eccentricities, diameter) = Eccentricity.visit(&graph);
+    let ecc_of = |v| {
+        eccentricities
+            .iter()
+            .find(|(id, _)| *id == v)
+            .map(|(_, e)| *e)
+            .unwrap()
+    };
+
+    assert_eq!(ecc_of(a), 3);
+    assert_eq!(ecc_of(b), 2);
+    assert_eq!(ecc_of(c), 2);
+    assert_eq!(ecc_of(d), 3);
+    assert_eq!(diameter, Some(3));
+}
+
+#[test]
+fn eccentricity_ignores_unreachable_vertices() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let isolated = graph.add_vertex("isolated");
+    graph.edges_mut().add_edge(a, b, ());
+
+    let (eccentricities, diameter) = Eccentricity.visit(&graph);
+    let ecc_of = |v| {
+        eccentricities
+            .iter()
+            .find(|(id, _)| *id == v)
+            .map(|(_, e)| *e)
+            .unwrap()
+    };
+
+    assert_eq!(ecc_of(a), 1);
+    assert_eq!(ecc_of(b), 1);
+    assert_eq!(ecc_of(isolated), 0);
+    assert_eq!(diameter, Some(1));
+}
+
+#[test]
+fn betweenness_centrality_ranks_the_middle_of_a_path_highest() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge(a, b, ());
+    graph.edges_mut().add_edge(b, c, ());
+
+    let scores = BetweennessCentrality.visit(&graph);
+    let score_of = |v| {
+        scores
+            .iter()
+            .find(|(id, _)| *id == v)
+            .map(|(_, s)| *s)
+            .unwrap()
+    };
+
+    assert_eq!(score_of(a), 0.0);
+    assert_eq!(score_of(c), 0.0);
+    assert_eq!(score_of(b), 2.0);
+}
+
+#[test]
+fn betweenness_centrality_of_a_triangle_is_zero_for_everyone() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge(a, b, ());
+    graph.edges_mut().add_edge(b, c, ());
+    graph.edges_mut().add_edge(c, a, ());
+
+    let scores = BetweennessCentrality.visit(&graph);
+    assert!(scores.iter().all(|(_, s)| *s == 0.0));
+}
+
+#[test]
+fn bipartite_finds_the_two_classes_of_an_even_cycle() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge(a, b, ());
+    graph.edges_mut().add_edge(b, c, ());
+    graph.edges_mut().add_edge(c, d, ());
+    graph.edges_mut().add_edge(d, a, ());
+
+    let (class_a, class_b) = Bipartite.visit(&graph).unwrap();
+
+    assert_eq!(class_a.len(), 2);
+    assert_eq!(class_b.len(), 2);
+    // a and c are opposite corners of the 4-cycle, always in the same class as each other.
+    assert_eq!(class_a.contains(&a), class_a.contains(&c));
+    assert_ne!(class_a.contains(&a), class_a.contains(&b));
+}
+
+#[test]
+fn bipartite_returns_none_for_an_odd_cycle() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge(a, b, ());
+    graph.edges_mut().add_edge(b, c, ());
+    graph.edges_mut().add_edge(c, a, ());
+
+    assert_eq!(Bipartite.visit(&graph), None);
+}
+
+#[test]
+fn transitive_closure_finds_everything_reachable_from_each_vertex() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(b, c, ());
+    graph.edges_mut().add_edge_directed(a, d, ());
+
+    let closure = TransitiveClosure.visit(&graph);
+    let reachable_from = |v| {
+        closure
+            .iter()
+            .find(|(id, _)| *id == v)
+            .map(|(_, r)| r.clone())
+            .unwrap()
+    };
+
+    let from_a = reachable_from(a);
+    assert_eq!(from_a.len(), 3);
+    assert!(from_a.contains(&b) && from_a.contains(&c) && from_a.contains(&d));
+    assert_eq!(reachable_from(b), vec![c]);
+    assert_eq!(reachable_from(c), Vec::<_>::new());
+    assert_eq!(reachable_from(d), Vec::<_>::new());
+}
+
+#[test]
+fn transitive_closure_includes_self_when_on_a_cycle() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(b, a, ());
+
+    let closure = TransitiveClosure.visit(&graph);
+    let from_a = closure
+        .iter()
+        .find(|(id, _)| *id == a)
+        .map(|(_, r)| r.clone())
+        .unwrap();
+
+    assert!(from_a.contains(&a) && from_a.contains(&b));
+}
+
+#[test]
+fn all_simple_paths_enumerates_every_route_to_the_target() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(a, c, ());
+    graph.edges_mut().add_edge_directed(b, d, ());
+    graph.edges_mut().add_edge_directed(c, d, ());
+    graph.edges_mut().add_edge_directed(b, c, ()); // opens a third route: a-b-c-d
+
+    let paths = AllSimplePaths::new(d).visit(&graph, a).unwrap();
+
+    assert_eq!(paths.len(), 3);
+    assert!(paths.contains(&vec![a, b, d]));
+    assert!(paths.contains(&vec![a, c, d]));
+    assert!(paths.contains(&vec![a, b, c, d]));
+}
+
+#[test]
+fn all_simple_paths_is_empty_for_an_unreachable_target() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+
+    assert_eq!(
+        AllSimplePaths::new(b).visit(&graph, a).unwrap(),
+        Vec::<Vec<_>>::new()
+    );
+}
+
+#[test]
+fn astar_finds_shortest_path_with_an_admissible_heuristic() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge_directed(a, b, Km(5.0));
+    graph.edges_mut().add_edge_directed(a, c, Km(1.0));
+    graph.edges_mut().add_edge_directed(c, b, Km(1.0));
+
+    let heuristic = move |v| {
+        if v == b {
+            0.0
+        } else if v == c {
+            0.5
+        } else {
+            1.0
+        }
+    };
+    let (path, total) = AStar::new(b, heuristic).visit(&graph, a).unwrap().unwrap();
+    assert_eq!(path, vec![a, c, b]);
+    assert_eq!(total, 2.0);
+}
+
+#[test]
+fn astar_returns_none_for_unreachable_target() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+
+    assert_eq!(AStar::new(b, |_| 0.0).visit(&graph, a).unwrap(), None);
+}
+
+#[test]
+fn bellman_ford_finds_shortest_path_with_a_negative_edge() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge_directed(a, b, Km(5.0));
+    graph.edges_mut().add_edge_directed(a, c, Km(2.0));
+    graph.edges_mut().add_edge_directed(c, b, Km(-4.0));
+
+    let (path, total) = BellmanFord::new(b).visit(&graph, a).unwrap().unwrap();
+    assert_eq!(path, vec![a, c, b]);
+    assert_eq!(total, -2.0);
+}
+
+#[test]
+fn bellman_ford_reports_a_reachable_negative_cycle() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    graph.edges_mut().add_edge_directed(a, b, Km(1.0));
+    graph.edges_mut().add_edge_directed(b, a, Km(-3.0));
+
+    assert_eq!(
+        BellmanFord::new(b).visit(&graph, a),
+        Err(VisitError::NegativeCycle)
+    );
+}
+
+#[test]
+fn bellman_ford_does_not_report_a_false_negative_cycle_on_a_filtered_view() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let s = graph.add_vertex("s");
+    let m1 = graph.add_vertex("m1");
+    let m2 = graph.add_vertex("m2");
+    let t = graph.add_vertex("t");
+    graph.edges_mut().add_edge_directed(s, m1, Km(1.0));
+    graph.edges_mut().add_edge_directed(m1, m2, Km(1.0));
+    graph.edges_mut().add_edge_directed(m2, t, Km(1.0));
+    let view = graph.get_filtered_view(Some(|v: &&str| *v == "s" || *v == "t"), None);
+
+    // m1 and m2 are vertex-filtered out of the view, so their edges don't relax and s can't
+    // reach t: the bound must still be settled without a spurious negative-cycle report.
+    assert_eq!(BellmanFord::new(t).visit(&view, s).unwrap(), None);
+}
+
+#[test]
+fn minimum_spanning_tree_finds_the_cheapest_connecting_edges() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge(a, b, Km(1.0));
+    graph.edges_mut().add_edge(b, c, Km(2.0));
+    graph.edges_mut().add_edge(c, d, Km(3.0));
+    graph.edges_mut().add_edge(a, c, Km(4.0)); // would close a cycle, must be skipped
+    graph.edges_mut().add_edge(a, d, Km(10.0)); // would close a cycle, must be skipped
+
+    let (mst, total) = MinimumSpanningTree.visit(&graph);
+
+    assert_eq!(total, 6.0);
+    assert_eq!(mst.len(), 3);
+    let has_edge = |x, y| {
+        mst.iter()
+            .any(|&(f, t, _)| (f == x && t == y) || (f == y && t == x))
+    };
+    assert!(has_edge(a, b));
+    assert!(has_edge(b, c));
+    assert!(has_edge(c, d));
+}
+
+#[test]
+fn minimum_spanning_tree_builds_a_forest_over_disconnected_components() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    let _isolated = graph.add_vertex("isolated");
+    graph.edges_mut().add_edge(a, b, Km(1.0));
+    graph.edges_mut().add_edge(c, d, Km(2.0));
+
+    let (mst, total) = MinimumSpanningTree.visit(&graph);
+
+    assert_eq!(total, 3.0);
+    assert_eq!(mst.len(), 2);
+}
+
+#[test]
+fn minimum_spanning_tree_handles_a_filtered_view_with_gaps_in_vertex_ids() {
+    let mut graph = GraphBuilder::<&str, Km>::new().build();
+    let a = graph.add_vertex("a");
+    let _b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    let e = graph.add_vertex("e");
+    graph.edges_mut().add_edge(a, c, Km(1.0));
+    graph.edges_mut().add_edge(d, e, Km(2.0));
+    let view = graph.get_filtered_view(Some(|v: &&str| *v != "b"), None);
+
+    // The view's own vertex count (4) is smaller than e's raw id (4), since b is excluded:
+    // a union-find sized to `view.len()` would index out of bounds on e.
+    let (mst, total) = MinimumSpanningTree.visit(&view);
+
+    assert_eq!(total, 3.0);
+    assert_eq!(mst.len(), 2);
 }
 
 #[test]
