@@ -10,6 +10,7 @@
 mod astar;
 mod bellman_ford;
 mod bfs;
+mod bfs_to_any;
 mod biconnected;
 mod bipartite;
 mod bridges;
@@ -32,6 +33,7 @@ mod transitive_closure;
 pub use astar::AStar;
 pub use bellman_ford::BellmanFord;
 pub use bfs::Bfs;
+pub use bfs_to_any::BfsToAny;
 pub use biconnected::{BiconnectedComponents, BiconnectedEdges};
 pub use bipartite::{Bipartite, Bipartition};
 pub use bridges::{ArticulationPoints, BridgeEdges, Bridges};

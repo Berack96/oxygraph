@@ -2,7 +2,7 @@ use oxygraph::GraphBuilder;
 use oxygraph::graph_edges::{AdjList, GraphEdgeStorage, GraphEdgeStorageDirected, Weighted};
 use oxygraph::graph_view::GraphView;
 use oxygraph::graph_visit::{
-    AStar, AllSimplePaths, ArticulationPoints, BellmanFord, BetweennessCentrality, Bfs,
+    AStar, AllSimplePaths, ArticulationPoints, BellmanFord, BetweennessCentrality, Bfs, BfsToAny,
     BiconnectedComponents, Bipartite, Bridges, ConnectedComponents, CycleDetection, Dfs, Dijkstra,
     DijkstraReached, Eccentricity, EulerianTrail, MaxFlow, MinimumSpanningTree, MultiSourceBfs,
     MultiSourceDijkstra, Reached, StronglyConnectedComponents, TopologicalSort, TransitiveClosure,
@@ -144,6 +144,69 @@ fn bfs_does_not_reach_a_vertex_excluded_by_the_filter() {
     let order = Bfs.visit(&view, a).unwrap();
 
     assert_eq!(order, vec![a, b]);
+}
+
+#[test]
+fn bfs_to_any_finds_the_path_to_the_closest_target() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(a, d, ());
+    graph.edges_mut().add_edge_directed(b, c, ());
+
+    let (path, target) = BfsToAny::new([c, d]).visit(&graph, a).unwrap().unwrap();
+
+    assert_eq!(path, vec![a, d]);
+    assert_eq!(target, d);
+}
+
+#[test]
+fn bfs_to_any_returns_the_start_immediately_when_it_is_a_target() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    graph.edges_mut().add_edge_directed(a, b, ());
+
+    let (path, target) = BfsToAny::new([a, b]).visit(&graph, a).unwrap().unwrap();
+
+    assert_eq!(path, vec![a]);
+    assert_eq!(target, a);
+}
+
+#[test]
+fn bfs_to_any_returns_none_when_no_target_is_reachable() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+
+    assert_eq!(BfsToAny::new([b]).visit(&graph, a).unwrap(), None);
+}
+
+#[test]
+fn bfs_to_any_reports_missing_start_vertex() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let b = graph.add_vertex("b");
+    let missing = oxygraph::VertexId::new(1);
+
+    assert_eq!(
+        BfsToAny::new([b]).visit(&graph, missing),
+        Err(VisitError::VertexNotFound)
+    );
+}
+
+#[test]
+fn bfs_to_any_reports_missing_target_vertex() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let missing = oxygraph::VertexId::new(1);
+
+    assert_eq!(
+        BfsToAny::new([missing]).visit(&graph, a),
+        Err(VisitError::VertexNotFound)
+    );
 }
 
 #[derive(Clone)]
