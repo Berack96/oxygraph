@@ -8,6 +8,7 @@ pub use csr::AdjCsr;
 pub use fixed::AdjListFixed;
 pub use matrix::AdjMatrix;
 
+#[cfg(feature = "serde")]
 use oxygraph_derive::serde_feature;
 
 use crate::vertices::{UnsignedId, VertexId};
@@ -39,7 +40,7 @@ pub trait Weighted {
 /// [`GraphEdgeStorageDirected::add_edge_directed`] can create one, on a storage that opts
 /// into it. `with_edges`/`add_all`/`remove_all` are the literal, non-mirrored bulk-load
 /// counterparts (one arc per tuple, exactly as given).
-#[serde_feature]
+#[cfg_attr(feature = "serde", serde_feature)]
 pub trait GraphEdgeStorage {
     type Edge: 'static;
     type Id: UnsignedId;
@@ -117,7 +118,7 @@ pub trait GraphEdgeStorageDirected: GraphEdgeStorage {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[serde_feature]
+#[cfg_attr(feature = "serde", serde_feature)]
 pub struct Edge<E, I: UnsignedId> {
     pub from: VertexId<I>,
     pub to: VertexId<I>,
@@ -125,7 +126,7 @@ pub struct Edge<E, I: UnsignedId> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[serde_feature]
+#[cfg_attr(feature = "serde", serde_feature)]
 pub struct EdgeSimple<E, I: UnsignedId> {
     to: VertexId<I>,
     data: E,

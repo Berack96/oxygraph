@@ -1,8 +1,9 @@
 use std::{fmt::Debug, hash::Hash, num::NonZero};
 
+#[cfg(feature = "serde")]
 use oxygraph_derive::serde_feature;
 
-#[serde_feature]
+#[cfg_attr(feature = "serde", serde_feature)]
 pub trait UnsignedId: Debug + Copy + Eq + Hash {
     type NonZero: Debug + Copy + Eq + Hash + Ord;
     fn to_nz(v: usize) -> Self::NonZero;
@@ -29,7 +30,7 @@ impl_unsigned_id!(u8, u16, u32, u64, u128, usize);
 
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-#[serde_feature]
+#[cfg_attr(feature = "serde", serde_feature)]
 pub struct VertexId<I: UnsignedId>(pub I::NonZero);
 
 impl<I: UnsignedId> VertexId<I> {

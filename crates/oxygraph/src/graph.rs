@@ -1,5 +1,6 @@
 //! Struct central to the library, representing a graph and its associated data structures.
 
+#[cfg(feature = "serde")]
 use oxygraph_derive::serde_feature;
 
 use crate::{
@@ -21,7 +22,7 @@ pub trait GraphView<V: 'static, S: GraphEdgeStorage> {
 }
 
 #[derive(Clone)]
-#[serde_feature]
+#[cfg_attr(feature = "serde", serde_feature)]
 pub struct Graph<V: 'static, S: GraphEdgeStorage> {
     pub(crate) vertices: Vec<V>,
     pub(crate) edge_storage: S,
