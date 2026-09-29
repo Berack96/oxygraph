@@ -1,3 +1,4 @@
+#[cfg(feature = "serde")]
 use oxygraph_derive::serde_feature;
 
 use crate::{
@@ -16,7 +17,7 @@ use crate::{
 /// [`remove_edge_directed`](GraphEdgeStorageDirected::remove_edge_directed) call is O(V + E),
 /// since it has to shift the packed arrays. CSR fits graphs that are mostly built once (or in
 /// batches) and then read many times, not ones mutated edge-by-edge.
-#[serde_feature]
+#[cfg_attr(feature = "serde", serde_feature)]
 pub struct AdjCsr<E: 'static, I: UnsignedId> {
     offsets: Vec<usize>,
     targets: Vec<VertexId<I>>,

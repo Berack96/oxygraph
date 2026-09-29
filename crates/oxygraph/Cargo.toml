@@ -13,8 +13,9 @@ num-traits = "0.2.19"
 serde = { version = "1.0", optional = true, features = ["derive"] }
 
 [features]
-default = ["oxygraph-derive"]
+default = []
 serde = [
+	"dep:oxygraph-derive",
 	"oxygraph-derive/serde",
 	"dep:serde",
 ] # Enable serialization and deserialization support

@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+#[cfg(feature = "serde")]
 use oxygraph_derive::serde_feature;
 
 use crate::{
@@ -16,7 +17,7 @@ use crate::{
 /// to a higher vertex id reallocates the whole grid (O(n²)). Good fit for dense graphs with a
 /// known-ish vertex count; wasteful for large sparse graphs, where `AdjList`/`AdjCsr` fit
 /// better.
-#[serde_feature]
+#[cfg_attr(feature = "serde", serde_feature)]
 pub struct AdjMatrix<E: 'static, I: UnsignedId> {
     cells: Vec<Option<E>>,
     size: usize,
