@@ -21,14 +21,14 @@ pub mod graph_edges {
 pub mod graph_view {
     pub use super::edges::EdgeView;
     pub use super::graph::GraphView;
-    pub use super::views::{EdgeFilteredView, GraphFilteredView};
+    pub use super::views::{EdgeFilter, EdgeFilteredView, GraphFilteredView, VertexFilter};
 }
 
 pub mod graph_visit {
     pub use super::visits::{
         AStar, AllSimplePaths, ArticulationPoints, BellmanFord, BetweennessCentrality, Bfs,
-        BiconnectedComponents, BiconnectedEdges, Bipartite, Bipartition, BridgeEdges, Bridges,
-        Centrality, Components, ConnectedComponents, CycleDetection, Dfs, Dijkstra,
+        BfsToAny, BiconnectedComponents, BiconnectedEdges, Bipartite, Bipartition, BridgeEdges,
+        Bridges, Centrality, Components, ConnectedComponents, CycleDetection, Dfs, Dijkstra,
         DijkstraReached, DijkstraReaching, Eccentricities, Eccentricity, EulerianTrail, MaxFlow,
         MinCutEdges, MinimumSpanningTree, MstEdges, MultiSourceBfs, MultiSourceDijkstra,
         Reachability, Reached, Reaching, SccComponents, StronglyConnectedComponents,

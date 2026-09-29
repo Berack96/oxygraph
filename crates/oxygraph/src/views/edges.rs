@@ -1,21 +1,22 @@
 use crate::{
     VertexId,
     edges::{Edge, EdgeView, GraphEdgeStorage, GraphEdgeStorageDirected},
+    views::{EdgeFilter, VertexFilter},
 };
 
 pub struct EdgeFilteredView<'a, V: 'static, S: GraphEdgeStorage> {
     edge_storage: &'a S,
-    filter_edges: Option<fn(&S::Edge) -> bool>,
+    filter_edges: Option<EdgeFilter<'a, S::Edge>>,
     vertices: &'a [V],
-    filter_vertices: Option<fn(&V) -> bool>,
+    filter_vertices: Option<VertexFilter<'a, V>>,
 }
 
 impl<'a, V: 'static, S: GraphEdgeStorage> EdgeFilteredView<'a, V, S> {
     pub(crate) fn new(
         edge_storage: &'a S,
-        filter_edges: Option<fn(&S::Edge) -> bool>,
+        filter_edges: Option<EdgeFilter<'a, S::Edge>>,
         vertices: &'a [V],
-        filter_vertices: Option<fn(&V) -> bool>,
+        filter_vertices: Option<VertexFilter<'a, V>>,
     ) -> Self {
         Self {
             edge_storage,
@@ -28,14 +29,18 @@ impl<'a, V: 'static, S: GraphEdgeStorage> EdgeFilteredView<'a, V, S> {
     /// Whether `id` names a vertex both present in `vertices` and accepted by
     /// `filter_vertices`: an edge reaching outside this is no more "in the view" than one
     /// `filter_edges` rejects.
-    fn vertex_in_view(&self, id: VertexId<S::Id>) -> bool {
-        self.vertices
-            .get(id.id())
-            .is_some_and(|v| self.filter_vertices.is_none_or(|filter| filter(v)))
+    pub(crate) fn vertex_in_view(&self, id: VertexId<S::Id>) -> bool {
+        self.vertices.get(id.id()).is_some_and(|v| {
+            self.filter_vertices
+                .as_deref()
+                .is_none_or(|filter| filter(v))
+        })
     }
 
     fn edge_in_view(&self, edge: &EdgeView<'_, S::Edge, S::Id>) -> bool {
-        self.filter_edges.is_none_or(|filter| filter(edge.data))
+        self.filter_edges
+            .as_deref()
+            .is_none_or(|filter| filter(edge.data))
             && self.vertex_in_view(edge.from)
             && self.vertex_in_view(edge.to)
     }
@@ -88,9 +93,11 @@ impl<'a, V: 'static, S: GraphEdgeStorage> GraphEdgeStorage for EdgeFilteredView<
         if !self.vertex_in_view(*from) || !self.vertex_in_view(*to) {
             return None;
         }
-        self.edge_storage
-            .get(from, to)
-            .filter(|data| self.filter_edges.is_none_or(|filter| filter(data)))
+        self.edge_storage.get(from, to).filter(|data| {
+            self.filter_edges
+                .as_deref()
+                .is_none_or(|filter| filter(data))
+        })
     }
 
     fn has_edge(&self, from: &VertexId<S::Id>, to: &VertexId<S::Id>) -> bool {

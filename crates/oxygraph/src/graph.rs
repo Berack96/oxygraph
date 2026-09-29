@@ -2,7 +2,11 @@
 
 use oxygraph_derive::serde_feature;
 
-use crate::{edges::GraphEdgeStorage, vertices::VertexId, views::GraphFilteredView};
+use crate::{
+    edges::GraphEdgeStorage,
+    vertices::VertexId,
+    views::{EdgeFilter, GraphFilteredView, VertexFilter},
+};
 
 pub trait GraphView<V: 'static, S: GraphEdgeStorage> {
     fn vertex(&self, id: VertexId<S::Id>) -> Option<&V>;
@@ -48,11 +52,11 @@ impl<V, S: GraphEdgeStorage> Graph<V, S> {
         self.get_filtered_view(None, None)
     }
 
-    pub fn get_filtered_view(
-        &self,
-        filter_vertices: Option<fn(&V) -> bool>,
-        filter_edges: Option<fn(&S::Edge) -> bool>,
-    ) -> GraphFilteredView<'_, V, S> {
+    pub fn get_filtered_view<'a>(
+        &'a self,
+        filter_vertices: Option<VertexFilter<'a, V>>,
+        filter_edges: Option<EdgeFilter<'a, S::Edge>>,
+    ) -> GraphFilteredView<'a, V, S> {
         GraphFilteredView::new(self, filter_vertices, filter_edges)
     }
 }

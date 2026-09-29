@@ -2,7 +2,7 @@ use oxygraph::GraphBuilder;
 use oxygraph::graph_edges::{AdjList, GraphEdgeStorage, GraphEdgeStorageDirected, Weighted};
 use oxygraph::graph_view::GraphView;
 use oxygraph::graph_visit::{
-    AStar, AllSimplePaths, ArticulationPoints, BellmanFord, BetweennessCentrality, Bfs,
+    AStar, AllSimplePaths, ArticulationPoints, BellmanFord, BetweennessCentrality, Bfs, BfsToAny,
     BiconnectedComponents, Bipartite, Bridges, ConnectedComponents, CycleDetection, Dfs, Dijkstra,
     DijkstraReached, Eccentricity, EulerianTrail, MaxFlow, MinimumSpanningTree, MultiSourceBfs,
     MultiSourceDijkstra, Reached, StronglyConnectedComponents, TopologicalSort, TransitiveClosure,
@@ -126,7 +126,7 @@ fn dfs_handles_self_loop() {
 fn bfs_reports_missing_start_vertex_when_excluded_by_a_filter() {
     let mut graph = GraphBuilder::<&str, ()>::new().build();
     let a = graph.add_vertex("a");
-    let view = graph.get_filtered_view(Some(|v: &&str| *v != "a"), None);
+    let view = graph.get_filtered_view(Some(Box::new(|v: &&str| *v != "a")), None);
 
     assert_eq!(Bfs.visit(&view, a), Err(VisitError::VertexNotFound));
 }
@@ -139,11 +139,89 @@ fn bfs_does_not_reach_a_vertex_excluded_by_the_filter() {
     let x = graph.add_vertex("x");
     graph.edges_mut().add_edge_directed(a, b, ());
     graph.edges_mut().add_edge_directed(a, x, ());
-    let view = graph.get_filtered_view(Some(|v: &&str| *v != "x"), None);
+    let view = graph.get_filtered_view(Some(Box::new(|v: &&str| *v != "x")), None);
 
     let order = Bfs.visit(&view, a).unwrap();
 
     assert_eq!(order, vec![a, b]);
+}
+
+#[test]
+fn bfs_to_any_finds_the_path_to_the_closest_target() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    let d = graph.add_vertex("d");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(a, d, ());
+    graph.edges_mut().add_edge_directed(b, c, ());
+
+    let (path, target) = BfsToAny::new([c, d]).visit(&graph, a).unwrap().unwrap();
+
+    assert_eq!(path, vec![a, d]);
+    assert_eq!(target, d);
+}
+
+#[test]
+fn bfs_to_any_breaks_a_tie_between_equidistant_targets_by_discovery_order() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    let c = graph.add_vertex("c");
+    graph.edges_mut().add_edge_directed(a, b, ());
+    graph.edges_mut().add_edge_directed(a, c, ());
+
+    let (path, target) = BfsToAny::new([c, b]).visit(&graph, a).unwrap().unwrap();
+
+    assert_eq!(path, vec![a, b]);
+    assert_eq!(target, b);
+}
+
+#[test]
+fn bfs_to_any_returns_the_start_immediately_when_it_is_a_target() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+    graph.edges_mut().add_edge_directed(a, b, ());
+
+    let (path, target) = BfsToAny::new([a, b]).visit(&graph, a).unwrap().unwrap();
+
+    assert_eq!(path, vec![a]);
+    assert_eq!(target, a);
+}
+
+#[test]
+fn bfs_to_any_returns_none_when_no_target_is_reachable() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let b = graph.add_vertex("b");
+
+    assert_eq!(BfsToAny::new([b]).visit(&graph, a).unwrap(), None);
+}
+
+#[test]
+fn bfs_to_any_reports_missing_start_vertex() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let b = graph.add_vertex("b");
+    let missing = oxygraph::VertexId::new(1);
+
+    assert_eq!(
+        BfsToAny::new([b]).visit(&graph, missing),
+        Err(VisitError::VertexNotFound)
+    );
+}
+
+#[test]
+fn bfs_to_any_reports_missing_target_vertex() {
+    let mut graph = GraphBuilder::<&str, ()>::new().build();
+    let a = graph.add_vertex("a");
+    let missing = oxygraph::VertexId::new(1);
+
+    assert_eq!(
+        BfsToAny::new([missing]).visit(&graph, a),
+        Err(VisitError::VertexNotFound)
+    );
 }
 
 #[derive(Clone)]
@@ -731,7 +809,7 @@ fn topological_sort_ignores_an_edge_from_a_vertex_excluded_by_the_filter() {
     let w = graph.add_vertex("w");
     let x = graph.add_vertex("x");
     graph.edges_mut().add_edge_directed(w, x, ());
-    let view = graph.get_filtered_view(Some(|v: &&str| *v != "w"), None);
+    let view = graph.get_filtered_view(Some(Box::new(|v: &&str| *v != "w")), None);
 
     // w is excluded from the view, so its edge to x doesn't count: x has no in-view
     // predecessor and is free to sort on its own.
@@ -816,7 +894,7 @@ fn max_flow_min_cut_excludes_an_edge_to_a_vertex_outside_the_filtered_view() {
     graph.edges_mut().add_edge_directed(s, a, Km(5.0));
     graph.edges_mut().add_edge_directed(a, t, Km(3.0));
     graph.edges_mut().add_edge_directed(a, x, Km(10.0));
-    let view = graph.get_filtered_view(Some(|v: &&str| *v != "x"), None);
+    let view = graph.get_filtered_view(Some(Box::new(|v: &&str| *v != "x")), None);
 
     let (flow, min_cut) = MaxFlow::new(t).visit(&view, s).unwrap();
 
@@ -883,7 +961,7 @@ fn eulerian_trail_ignores_edges_touching_a_vertex_excluded_by_the_filter() {
     let x = graph.add_vertex("x");
     graph.edges_mut().add_edge_directed(a, b, ());
     graph.edges_mut().add_edge_directed(a, x, ());
-    let view = graph.get_filtered_view(Some(|v: &&str| *v != "x"), None);
+    let view = graph.get_filtered_view(Some(Box::new(|v: &&str| *v != "x")), None);
 
     // x is excluded from the view, so a's edge to it doesn't count: the view exposes only
     // the balanced a-b edge, giving a one-edge trail.
@@ -1162,7 +1240,7 @@ fn bellman_ford_does_not_report_a_false_negative_cycle_on_a_filtered_view() {
     graph.edges_mut().add_edge_directed(s, m1, Km(1.0));
     graph.edges_mut().add_edge_directed(m1, m2, Km(1.0));
     graph.edges_mut().add_edge_directed(m2, t, Km(1.0));
-    let view = graph.get_filtered_view(Some(|v: &&str| *v == "s" || *v == "t"), None);
+    let view = graph.get_filtered_view(Some(Box::new(|v: &&str| *v == "s" || *v == "t")), None);
 
     // m1 and m2 are vertex-filtered out of the view, so their edges don't relax and s can't
     // reach t: the bound must still be settled without a spurious negative-cycle report.
@@ -1222,7 +1300,7 @@ fn minimum_spanning_tree_handles_a_filtered_view_with_gaps_in_vertex_ids() {
     let e = graph.add_vertex("e");
     graph.edges_mut().add_edge(a, c, Km(1.0));
     graph.edges_mut().add_edge(d, e, Km(2.0));
-    let view = graph.get_filtered_view(Some(|v: &&str| *v != "b"), None);
+    let view = graph.get_filtered_view(Some(Box::new(|v: &&str| *v != "b")), None);
 
     // The view's own vertex count (4) is smaller than e's raw id (4), since b is excluded:
     // a union-find sized to `view.len()` would index out of bounds on e.
